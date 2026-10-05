@@ -30,9 +30,9 @@ export function AuthScreen() {
         <Text style={styles.brand}>kashero</Text>
         <Text style={styles.title}>{needsSetup ? "Set up your store" : "Welcome back"}</Text>
         <Text style={styles.subtitle}>{needsSetup ? "Create the owner account to get started." : "Sign in to start your shift."}</Text>
-        {needsSetup && <Field label="Your name" value={displayName} onChangeText={setDisplayName} autoCapitalize="words" />}
-        <Field label="Username" value={username} onChangeText={setUsername} autoCapitalize="none" />
-        <Field label="Password" value={password} onChangeText={setPassword} autoCapitalize="none" secureTextEntry />
+        {needsSetup && <Field testID="auth-display-name-input" label="Your name" value={displayName} onChangeText={setDisplayName} autoCapitalize="words" />}
+        <Field testID="auth-username-input" label="Username" value={username} onChangeText={setUsername} autoCapitalize="none" />
+        <Field testID="auth-password-input" label="Password" value={password} onChangeText={setPassword} autoCapitalize="none" secureTextEntry />
         {error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
         <PrimaryButton label={busy ? "Please wait…" : needsSetup ? "Create owner account" : "Sign in"} onPress={submit} disabled={busy} />
       </ScrollView>
@@ -40,8 +40,8 @@ export function AuthScreen() {
   );
 }
 
-function Field(props: { label: string; value: string; onChangeText(value: string): void; autoCapitalize?: "none" | "words"; secureTextEntry?: boolean }) {
-  return <View style={styles.field}><Text style={styles.label}>{props.label}</Text><TextInput accessibilityLabel={props.label} autoCapitalize={props.autoCapitalize} autoCorrect={false} secureTextEntry={props.secureTextEntry} value={props.value} onChangeText={props.onChangeText} style={styles.input} returnKeyType="next" /></View>;
+function Field(props: { testID: string; label: string; value: string; onChangeText(value: string): void; autoCapitalize?: "none" | "words"; secureTextEntry?: boolean }) {
+  return <View style={styles.field}><Text style={styles.label}>{props.label}</Text><TextInput testID={props.testID} accessibilityLabel={props.label} autoCapitalize={props.autoCapitalize} autoCorrect={false} secureTextEntry={props.secureTextEntry} value={props.value} onChangeText={props.onChangeText} style={styles.input} returnKeyType="next" /></View>;
 }
 
 const styles = StyleSheet.create({

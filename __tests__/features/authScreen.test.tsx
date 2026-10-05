@@ -19,6 +19,8 @@ describe("sign-in screen", () => {
     await render(<AuthProvider service={service as never}><AuthScreen /></AuthProvider>);
 
     expect(await screen.findByText("Welcome back")).toBeTruthy();
+    expect(screen.getByTestId("auth-username-input")).toBeTruthy();
+    expect(screen.getByTestId("auth-password-input")).toBeTruthy();
     expect(screen.getByLabelText("Password").props.autoCapitalize).toBe("none");
     await fireEvent.changeText(screen.getByLabelText("Username"), "livecheck");
     await fireEvent.changeText(screen.getByLabelText("Password"), "live-checkout-2026");
