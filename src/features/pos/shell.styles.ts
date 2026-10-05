@@ -1,6 +1,6 @@
 import { StyleSheet } from "react-native";
 
-import { colors, radius, spacing, typeScale } from "../../theme/tokens";
+import { colors, minimumTouchTarget, radius, spacing, typeScale } from "../../theme/tokens";
 
 export const shellStyles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
@@ -33,7 +33,7 @@ export const shellStyles = StyleSheet.create({
   },
   store: { color: colors.muted, fontSize: 9, letterSpacing: 1.1, marginTop: 2 },
   staff: {
-    minHeight: 36,
+    minHeight: minimumTouchTarget,
     flexDirection: "row",
     alignItems: "center",
     gap: 7,
@@ -48,7 +48,8 @@ export const shellStyles = StyleSheet.create({
     backgroundColor: colors.success,
   },
   staffText: { color: colors.ink, fontSize: 12, fontWeight: "600" },
-  diagnosticsButton: { minHeight: 40, minWidth: 38, alignItems: "center", justifyContent: "center", paddingHorizontal: spacing.xs },
+  headerAction: { minHeight: minimumTouchTarget, justifyContent: "center" },
+  diagnosticsButton: { minHeight: minimumTouchTarget, minWidth: minimumTouchTarget, alignItems: "center", justifyContent: "center", paddingHorizontal: spacing.xs },
   diagnosticsButtonText: { color: colors.accent, fontSize: 11, fontWeight: "700" },
   workspace: { flex: 1 },
   tabletWorkspace: {

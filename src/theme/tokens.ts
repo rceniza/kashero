@@ -18,6 +18,7 @@ export const spacing = {
   xl: 24,
   xxl: 32,
 } as const;
+export const minimumTouchTarget = 44;
 export const radius = { sm: 10, md: 16, lg: 22, pill: 999 } as const;
 export const typeScale = {
   caption: 12,

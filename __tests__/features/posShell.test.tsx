@@ -1,10 +1,22 @@
 import { fireEvent, render, screen } from "@testing-library/react-native";
+import { StyleSheet } from "react-native";
 
 import { PosScreen } from "../../src/features/pos/PosScreen";
 import type { CatalogItem } from "../../src/features/catalog/types";
 import type { DiagnosticsService } from "../../src/features/diagnostics/DiagnosticsService";
 
 describe("responsive POS shell", () => {
+  it("exposes product and order controls with accessible labels and 44pt touch targets", async () => {
+    await render(<PosScreen viewportWidth={320} />);
+    const addItem = screen.getByRole("button", { name: "Add Café latte" });
+    expect(addItem.props.accessibilityHint).toBe("Adds this item to the current order");
+    expect(StyleSheet.flatten(addItem.props.style)).toMatchObject({ width: 44, height: 44 });
+
+    await fireEvent.press(screen.getByRole("button", { name: /View order/ }));
+    const closeOrder = screen.getByRole("button", { name: "Close order" });
+    expect(StyleSheet.flatten(closeOrder.props.style)).toMatchObject({ minWidth: 44, minHeight: 44 });
+  });
+
   it("keeps catalog search, category and order summary available at 320px", async () => {
     await render(<PosScreen viewportWidth={320} />);
     expect(screen.getByTestId("pos-shell-phone")).toBeTruthy();

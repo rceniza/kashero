@@ -1,6 +1,6 @@
 import { StyleSheet } from "react-native";
 
-import { colors, radius, spacing, typeScale } from "../../theme/tokens";
+import { colors, minimumTouchTarget, radius, spacing, typeScale } from "../../theme/tokens";
 
 export const catalogStyles = StyleSheet.create({
   search: {
@@ -20,7 +20,7 @@ export const catalogStyles = StyleSheet.create({
     alignItems: "center",
   },
   category: {
-    minHeight: 42,
+    minHeight: minimumTouchTarget,
     justifyContent: "center",
     backgroundColor: colors.surface,
     borderRadius: radius.pill,
@@ -87,16 +87,13 @@ export const catalogStyles = StyleSheet.create({
   },
   price: { color: colors.espresso, fontSize: 13, fontWeight: "800" },
   addButton: {
-    overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
     backgroundColor: colors.accentSoft,
-    color: colors.accent,
     borderRadius: 10,
-    width: 40,
-    height: 40,
-    textAlign: "center",
-    textAlignVertical: "center",
-    fontSize: 22,
-    fontWeight: "500",
+    width: minimumTouchTarget,
+    height: minimumTouchTarget,
   },
+  addButtonText: { color: colors.accent, fontSize: 22, fontWeight: "500" },
   empty: { color: colors.muted, paddingVertical: spacing.xl },
 });

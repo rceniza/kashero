@@ -266,10 +266,10 @@ export function PosScreen({
         </View>
         {catalogService && inventoryService && user && (user.role === "owner" || user.role === "manager") && (
           <>
-          <Pressable accessibilityRole="button" accessibilityLabel="Manage catalog" onPress={() => setManageCatalog(true)}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Manage catalog" onPress={() => setManageCatalog(true)} style={shellStyles.headerAction}>
             <Text style={shellStyles.staffText}>{tablet ? "Catalog" : "Items"}</Text>
           </Pressable>
-          <Pressable accessibilityRole="button" accessibilityLabel="Manage inventory" onPress={() => setManageInventory(true)}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Manage inventory" onPress={() => setManageInventory(true)} style={shellStyles.headerAction}>
             <Text style={shellStyles.staffText}>Stock</Text>
           </Pressable>
           </>
@@ -319,6 +319,7 @@ export function PosScreen({
                 <Pressable
                   key={item}
                   accessibilityRole="button"
+                  accessibilityLabel={item}
                   accessibilityState={{ selected }}
                   onPress={() => setCategory(item)}
                   style={[

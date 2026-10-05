@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, type PressableProps } from "react-native";
 
-import { colors, radius, spacing, typeScale } from "../theme/tokens";
+import { colors, minimumTouchTarget, radius, spacing, typeScale } from "../theme/tokens";
 
 type Props = Omit<PressableProps, "style"> & {
   label: string;
@@ -32,7 +32,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     backgroundColor: colors.accent,
   },
-  compact: { minHeight: 40, paddingHorizontal: spacing.lg },
+  compact: { minHeight: minimumTouchTarget, paddingHorizontal: spacing.lg },
   pressed: { opacity: 0.82 },
   label: { color: colors.surface, fontSize: typeScale.body, fontWeight: "700" },
 });

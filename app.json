@@ -12,6 +12,7 @@
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
+      "deploymentTarget": "16.4",
       "bundleIdentifier": "com.rceniza.kashero"
     },
     "android": {
@@ -29,7 +30,15 @@
     },
     "plugins": [
       "expo-router",
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 30
+          }
+        }
+      ]
     ]
   }
 }

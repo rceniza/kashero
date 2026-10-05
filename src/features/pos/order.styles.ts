@@ -1,6 +1,6 @@
 import { StyleSheet } from "react-native";
 
-import { colors, radius, spacing } from "../../theme/tokens";
+import { colors, minimumTouchTarget, radius, spacing } from "../../theme/tokens";
 
 export const orderStyles = StyleSheet.create({
   orderPanel: {
@@ -66,7 +66,7 @@ export const orderStyles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   error: { color: "#B42318", fontSize: 12, marginTop: spacing.sm },
-  quantityButton: { width: 30, height: 32, alignItems: "center", justifyContent: "center", borderRadius: radius.sm, backgroundColor: colors.background },
+  quantityButton: { width: minimumTouchTarget, height: minimumTouchTarget, alignItems: "center", justifyContent: "center", borderRadius: radius.sm, backgroundColor: colors.background },
   quantityButtonText: { color: colors.ink, fontSize: 18, fontWeight: "700" },
   confirmationBackdrop: { flex: 1, justifyContent: "center", backgroundColor: "#211B1680", padding: spacing.lg },
   confirmationCard: { maxHeight: "85%", flexGrow: 0, backgroundColor: colors.surface, borderRadius: radius.lg },
@@ -77,7 +77,7 @@ export const orderStyles = StyleSheet.create({
   cashLabel: { color: colors.ink, fontSize: 12, fontWeight: "700", marginTop: spacing.sm },
   cashInput: { minHeight: 48, paddingHorizontal: spacing.md, borderWidth: 1, borderColor: colors.line, borderRadius: radius.md, color: colors.ink, fontSize: 18, marginTop: spacing.xs },
   paymentMethods: { flexDirection: "row", gap: spacing.xs, marginTop: spacing.md },
-  paymentMethod: { flex: 1, minHeight: 38, alignItems: "center", justifyContent: "center", paddingHorizontal: spacing.xs, borderRadius: radius.pill, backgroundColor: colors.background },
+  paymentMethod: { flex: 1, minHeight: minimumTouchTarget, alignItems: "center", justifyContent: "center", paddingHorizontal: spacing.xs, borderRadius: radius.pill, backgroundColor: colors.background },
   selectedPaymentMethod: { backgroundColor: colors.espresso },
   paymentMethodText: { color: colors.muted, fontSize: 11, fontWeight: "700" },
   selectedPaymentMethodText: { color: colors.surface },
@@ -125,5 +125,6 @@ export const orderStyles = StyleSheet.create({
     backgroundColor: colors.line,
     marginBottom: spacing.lg,
   },
-  close: { color: colors.accent, fontSize: 13, fontWeight: "700" },
+  close: { minHeight: minimumTouchTarget, minWidth: minimumTouchTarget, alignItems: "center", justifyContent: "center" },
+  closeText: { color: colors.accent, fontSize: 13, fontWeight: "700" },
 });

@@ -40,14 +40,15 @@ export function ProductCard({
       </Text>
       <View style={catalogStyles.priceRow}>
         <Text style={catalogStyles.price}>{formatPeso(item.price)}</Text>
-        <Text
+        <Pressable
           accessibilityRole="button"
           accessibilityLabel={`Add ${item.name}`}
+          accessibilityHint="Adds this item to the current order"
           onPress={onAdd}
           style={catalogStyles.addButton}
         >
-          +
-        </Text>
+          <Text style={catalogStyles.addButtonText}>+</Text>
+        </Pressable>
       </View>
     </View>
   );
@@ -136,13 +137,14 @@ export function OrderSheet({
         <View style={orderStyles.sheetHandle} />
         <View style={orderStyles.orderHeading}>
           <Text style={shellStyles.sectionTitle}>Your order</Text>
-          <Text
+          <Pressable
             accessibilityRole="button"
+            accessibilityLabel="Close order"
             onPress={onClose}
             style={orderStyles.close}
           >
-            Close
-          </Text>
+            <Text style={orderStyles.closeText}>Close</Text>
+          </Pressable>
         </View>
         {cart.length ? (
           cart.map((line) => <CartLineRow key={line.item.id} line={line} onIncrease={onIncrease} onDecrease={onDecrease} />)

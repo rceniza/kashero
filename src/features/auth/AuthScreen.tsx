@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { PrimaryButton } from "../../components/PrimaryButton";
@@ -7,6 +7,10 @@ import { useAuth } from "./AuthProvider";
 
 export function AuthScreen() {
   const { needsSetup, error, login, setupOwner } = useAuth();
+  const usernameInput = useRef<TextInput | null>(null);
+  const passwordInput = useRef<TextInput | null>(null);
+  const setUsernameInput = useCallback((input: TextInput | null) => { usernameInput.current = input; }, []);
+  const setPasswordInput = useCallback((input: TextInput | null) => { passwordInput.current = input; }, []);
   const [displayName, setDisplayName] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -30,18 +34,59 @@ export function AuthScreen() {
         <Text style={styles.brand}>kashero</Text>
         <Text style={styles.title}>{needsSetup ? "Set up your store" : "Welcome back"}</Text>
         <Text style={styles.subtitle}>{needsSetup ? "Create the owner account to get started." : "Sign in to start your shift."}</Text>
-        {needsSetup && <Field testID="auth-display-name-input" label="Your name" value={displayName} onChangeText={setDisplayName} autoCapitalize="words" />}
-        <Field testID="auth-username-input" label="Username" value={username} onChangeText={setUsername} autoCapitalize="none" />
-        <Field testID="auth-password-input" label="Password" value={password} onChangeText={setPassword} autoCapitalize="none" secureTextEntry />
+        {needsSetup && (
+          <View style={styles.field}>
+            <Text style={styles.label}>Your name</Text>
+            <TextInput
+              testID="auth-display-name-input"
+              accessibilityLabel="Your name"
+              autoCapitalize="words"
+              autoCorrect={false}
+              value={displayName}
+              onChangeText={setDisplayName}
+              onSubmitEditing={() => usernameInput.current?.focus()}
+              style={styles.input}
+              returnKeyType="next"
+            />
+          </View>
+        )}
+        <View style={styles.field}>
+          <Text style={styles.label}>Username</Text>
+          <TextInput
+            ref={setUsernameInput}
+            testID="auth-username-input"
+            accessibilityLabel="Username"
+            autoCapitalize="none"
+            autoCorrect={false}
+            value={username}
+            onChangeText={setUsername}
+            onSubmitEditing={() => passwordInput.current?.focus()}
+            style={styles.input}
+            returnKeyType="next"
+          />
+        </View>
+        <View style={styles.field}>
+          <Text style={styles.label}>Password</Text>
+          <TextInput
+            ref={setPasswordInput}
+            testID="auth-password-input"
+            accessibilityLabel="Password"
+            autoCapitalize="none"
+            autoCorrect={false}
+            secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+            onSubmitEditing={submit}
+            blurOnSubmit
+            style={styles.input}
+            returnKeyType="done"
+          />
+        </View>
         {error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
         <PrimaryButton label={busy ? "Please wait…" : needsSetup ? "Create owner account" : "Sign in"} onPress={submit} disabled={busy} />
       </ScrollView>
     </KeyboardAvoidingView>
   );
-}
-
-function Field(props: { testID: string; label: string; value: string; onChangeText(value: string): void; autoCapitalize?: "none" | "words"; secureTextEntry?: boolean }) {
-  return <View style={styles.field}><Text style={styles.label}>{props.label}</Text><TextInput testID={props.testID} accessibilityLabel={props.label} autoCapitalize={props.autoCapitalize} autoCorrect={false} secureTextEntry={props.secureTextEntry} value={props.value} onChangeText={props.onChangeText} style={styles.input} returnKeyType="next" /></View>;
 }
 
 const styles = StyleSheet.create({
