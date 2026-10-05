@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Pressable,
   ScrollView,
@@ -29,6 +29,9 @@ import { InventoryScreen } from "../inventory/InventoryScreen";
 import type { User } from "../auth/UserRepository";
 import type { SalesService } from "../sales/SalesService";
 import type { SaleReceipt } from "../sales/types";
+import type { PaymentService } from "../payments/PaymentService";
+import type { CashPaymentResult } from "../payments/types";
+import { parseCashTenderInCentavos } from "../payments/types";
 import {
   catalog,
   categories,
@@ -46,6 +49,7 @@ type Props = {
   onCatalogChanged?: () => Promise<void> | void;
   inventoryService?: InventoryService;
   salesService?: SalesService;
+  paymentService?: PaymentService;
 };
 
 export function PosScreen({
@@ -58,6 +62,7 @@ export function PosScreen({
   onCatalogChanged,
   inventoryService,
   salesService,
+  paymentService,
 }: Props) {
   const dimensions = useWindowDimensions();
   const width = viewportWidth ?? dimensions.width;
@@ -79,6 +84,11 @@ export function PosScreen({
   const [saleSaving, setSaleSaving] = useState(false);
   const [saleError, setSaleError] = useState("");
   const [lastSale, setLastSale] = useState<SaleReceipt | null>(null);
+  const [pendingSale, setPendingSale] = useState<SaleReceipt | null>(null);
+  const [pendingSaleReady, setPendingSaleReady] = useState(!paymentService || !user);
+  const [paymentResult, setPaymentResult] = useState<CashPaymentResult | null>(null);
+  const [paymentSaving, setPaymentSaving] = useState(false);
+  const [paymentError, setPaymentError] = useState("");
   const items = catalogItems ?? catalog;
   const visibleCategories = categoryNames ?? categories.slice(1);
   const selectedCategory = category === "All items" || visibleCategories.includes(category)
@@ -93,6 +103,19 @@ export function PosScreen({
     (sum, line) => sum + line.item.price * line.quantity,
     0,
   );
+  useEffect(() => {
+    if (!paymentService || !user) return;
+    let active = true;
+    paymentService.getLatestPendingSale(user.id).then((sale) => {
+      if (!active || !sale) return;
+      setPendingSale(sale);
+      setLastSale(sale);
+      setPendingSaleReady(true);
+    }).catch(() => {
+      if (active) setPaymentError("Could not restore the pending payment. Please retry.");
+    }).finally(() => { if (active) setPendingSaleReady(true); });
+    return () => { active = false; };
+  }, [paymentService, user]);
   const addToCart = (item: CatalogItem) =>
     setCart((current) => {
       const existing = current.find((line) => line.item.id === item.id);
@@ -109,18 +132,56 @@ export function PosScreen({
       line.item.id !== item.id ? [line] : line.quantity > 1 ? [{ ...line, quantity: line.quantity - 1 }] : [],
     ));
   async function recordSale() {
-    if (!salesService || !user || cart.length === 0 || saleSaving) return;
+    if (!salesService || !user || cart.length === 0 || saleSaving || pendingSale || !pendingSaleReady) return;
     setSaleSaving(true);
     setSaleError("");
     try {
       const receipt = await salesService.createPendingSale(user.id, cart.map(({ item, quantity }) => ({ variantId: item.id, quantity })));
       setLastSale(receipt);
+      setPendingSale(receipt);
+      setPaymentResult(null);
+      setPaymentError("");
       setCart([]);
       setOrderOpen(false);
     } catch (error) {
       setSaleError(error instanceof Error ? error.message : "Could not record this sale.");
     } finally {
       setSaleSaving(false);
+    }
+  }
+
+  async function recordCashPayment(input: string) {
+    if (!paymentService || !user || !lastSale || paymentSaving) return;
+    setPaymentSaving(true);
+    setPaymentError("");
+    try {
+      const tendered = parseCashTenderInCentavos(input);
+      const result = await paymentService.recordCashPayment(user.id, lastSale.id, tendered);
+      setPaymentResult(result);
+      if (result.status === "paid") {
+        setPendingSale(null);
+        setLastSale({ ...lastSale, status: "paid" });
+      }
+    } catch (error) {
+      setPaymentError(error instanceof Error ? error.message : "Could not record this payment.");
+    } finally {
+      setPaymentSaving(false);
+    }
+  }
+
+  async function cancelPendingSale() {
+    if (!paymentService || !user || !lastSale || paymentSaving) return;
+    setPaymentSaving(true);
+    setPaymentError("");
+    try {
+      const result = await paymentService.cancelPendingSale(user.id, lastSale.id);
+      setPaymentResult(result);
+      setPendingSale(null);
+      setLastSale({ ...lastSale, status: "voided" });
+    } catch (error) {
+      setPaymentError(error instanceof Error ? error.message : "Could not cancel this sale.");
+    } finally {
+      setPaymentSaving(false);
     }
   }
 
@@ -181,6 +242,11 @@ export function PosScreen({
             </View>
             {tablet && <Text style={shellStyles.shift}>● Shift active</Text>}
           </View>
+          {!!pendingSale && !lastSale && (
+            <Pressable accessibilityRole="button" accessibilityLabel={`Resume payment ${pendingSale.receiptNumber}`} onPress={() => { setLastSale(pendingSale); setPaymentResult(null); setPaymentError(""); }} style={shellStyles.pendingPayment}>
+              <Text style={shellStyles.pendingPaymentText}>Payment pending · {pendingSale.receiptNumber} · {formatPeso(pendingSale.totalInCentavos)} · Resume</Text>
+            </Pressable>
+          )}
           <TextInput
             accessibilityLabel="Search products"
             placeholder="Search items or scan barcode"
@@ -245,7 +311,7 @@ export function PosScreen({
             )}
           </ScrollView>
         </View>
-        {tablet && <OrderPanel cart={cart} total={total} count={count} onIncrease={addToCart} onDecrease={decreaseFromCart} onCheckout={salesService && user ? recordSale : undefined} checkoutLabel={salesService ? saleSaving ? "Saving sale…" : "Record sale" : "Checkout coming soon"} checkoutDisabled={!salesService || !user || cart.length === 0 || saleSaving} checkoutError={saleError} />}
+        {tablet && <OrderPanel cart={cart} total={total} count={count} onIncrease={addToCart} onDecrease={decreaseFromCart} onCheckout={salesService && user ? recordSale : undefined} checkoutLabel={salesService ? saleSaving ? "Saving sale…" : pendingSale ? "Payment already pending" : "Record sale" : "Checkout coming soon"} checkoutDisabled={!salesService || !user || cart.length === 0 || saleSaving || !pendingSaleReady || !!pendingSale} checkoutError={saleError} />}
       </View>
 
       {!tablet && (
@@ -272,12 +338,12 @@ export function PosScreen({
           onIncrease={addToCart}
           onDecrease={decreaseFromCart}
           onCheckout={salesService && user ? recordSale : undefined}
-          checkoutLabel={salesService ? saleSaving ? "Saving sale…" : "Record sale" : "Checkout coming soon"}
-          checkoutDisabled={!salesService || !user || cart.length === 0 || saleSaving}
+          checkoutLabel={salesService ? saleSaving ? "Saving sale…" : pendingSale ? "Payment already pending" : "Record sale" : "Checkout coming soon"}
+          checkoutDisabled={!salesService || !user || cart.length === 0 || saleSaving || !pendingSaleReady || !!pendingSale}
           checkoutError={saleError}
         />
       )}
-      {!!lastSale && <SaleConfirmation receipt={lastSale} onDismiss={() => setLastSale(null)} />}
+      {!!lastSale && <SaleConfirmation receipt={lastSale} onDismiss={() => setLastSale(null)} onPay={recordCashPayment} onCancel={cancelPendingSale} saving={paymentSaving} error={paymentError} result={paymentResult} />}
     </View>
   );
 }

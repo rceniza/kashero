@@ -159,5 +159,24 @@ export const saleItems = sqliteTable("sale_items", {
   check("sale_items_total_check", sql`(${table.taxMode} = 'inclusive' and ${table.lineTotalInCentavos} = ${table.quantity} * ${table.unitPriceInCentavos} - ${table.discountInCentavos}) or (${table.taxMode} is not 'inclusive' and ${table.lineTotalInCentavos} = ${table.quantity} * ${table.unitPriceInCentavos} - ${table.discountInCentavos} + ${table.taxInCentavos})`),
 ]);
 
+export const payments = sqliteTable("payments", {
+  id: text("id").primaryKey().notNull(),
+  saleId: text("sale_id").notNull().references(() => sales.id, { onDelete: "restrict" }),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "restrict" }),
+  method: text("method", { enum: ["cash", "maya_terminal", "metrobank_terminal"] }).notNull(),
+  status: text("status", { enum: ["pending", "paid", "failed", "cancelled"] }).notNull(),
+  amountInCentavos: integer("amount_in_centavos").notNull(),
+  tenderedInCentavos: integer("tendered_in_centavos").notNull(),
+  changeInCentavos: integer("change_in_centavos").notNull().default(0),
+  failureReason: text("failure_reason"),
+  createdAt: text("created_at").notNull().default(utcSqlDefault),
+  updatedAt: text("updated_at").notNull().default(utcSqlDefault),
+}, (table) => [
+  check("payments_method_check", sql`${table.method} in ('cash', 'maya_terminal', 'metrobank_terminal')`),
+  check("payments_status_check", sql`${table.status} in ('pending', 'paid', 'failed', 'cancelled')`),
+  check("payments_amounts_integer_nonnegative", sql`typeof(${table.amountInCentavos}) = 'integer' and typeof(${table.tenderedInCentavos}) = 'integer' and typeof(${table.changeInCentavos}) = 'integer' and ${table.amountInCentavos} >= 0 and ${table.tenderedInCentavos} >= 0 and ${table.changeInCentavos} >= 0`),
+  check("payments_settlement_check", sql`${table.status} <> 'paid' or (${table.method} = 'cash' and ${table.amountInCentavos} <= ${table.tenderedInCentavos} and ${table.changeInCentavos} = ${table.tenderedInCentavos} - ${table.amountInCentavos}) or (${table.method} in ('maya_terminal', 'metrobank_terminal') and ${table.amountInCentavos} = ${table.tenderedInCentavos} and ${table.changeInCentavos} = 0)`),
+]);
+
 export type UserRow = typeof users.$inferSelect;
 export type NewUserRow = typeof users.$inferInsert;

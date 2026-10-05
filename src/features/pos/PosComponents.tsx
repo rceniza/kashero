@@ -1,4 +1,5 @@
-import { Modal, Pressable, ScrollView, Text, View } from "react-native";
+import { Modal, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { useState } from "react";
 
 import { PrimaryButton } from "../../components/PrimaryButton";
 import { formatPeso } from "../../utils/formatPeso";
@@ -7,6 +8,7 @@ import { orderStyles } from "./order.styles";
 import { shellStyles } from "./shell.styles";
 import type { CatalogItem } from "../catalog/types";
 import type { SaleReceipt } from "../sales/types";
+import type { CashPaymentResult } from "../payments/types";
 
 export type CartLine = { item: CatalogItem; quantity: number };
 
@@ -171,26 +173,61 @@ function CartLineRow({ line, onIncrease, onDecrease }: { line: CartLine; onIncre
   );
 }
 
-export function SaleConfirmation({ receipt, onDismiss }: { receipt: SaleReceipt; onDismiss: () => void }) {
+export function SaleConfirmation({
+  receipt, onDismiss, onPay, onCancel, saving = false, error = "", result = null,
+}: {
+  receipt: SaleReceipt;
+  onDismiss: () => void;
+  onPay: (tender: string) => void;
+  onCancel: () => void;
+  saving?: boolean;
+  error?: string;
+  result?: CashPaymentResult | null;
+}) {
+  const [tender, setTender] = useState("");
+  const settled = result?.status === "paid" || result?.status === "cancelled";
   return (
     <Modal visible transparent animationType="slide" onRequestClose={onDismiss}>
       <View style={orderStyles.confirmationBackdrop}>
-        <View style={orderStyles.confirmationCard}>
-          <Text style={orderStyles.confirmationEyebrow}>SALE SAVED</Text>
-          <Text style={orderStyles.confirmationTitle}>Awaiting payment</Text>
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          style={orderStyles.confirmationCard}
+          contentContainerStyle={orderStyles.confirmationCardContent}
+        >
+          <Text style={orderStyles.confirmationEyebrow}>{receipt.status === "paid" ? "SALE PAID" : receipt.status === "voided" ? "SALE CANCELLED" : "SALE SAVED"}</Text>
+          <Text style={orderStyles.confirmationTitle}>{result?.status === "paid" ? "Payment complete" : result?.status === "cancelled" ? "Sale cancelled" : "Awaiting payment"}</Text>
           <Text style={orderStyles.confirmationReceipt}>{receipt.receiptNumber}</Text>
-          <ScrollView style={orderStyles.confirmationLines}>
+          <View style={orderStyles.confirmationLines}>
             {receipt.lines.map((line) => <View key={line.variantId} style={orderStyles.orderLine}>
               <Text style={orderStyles.lineQty}>{line.quantity}×</Text>
               <Text style={orderStyles.lineName}>{line.productName} · {line.variantName}</Text>
               <Text style={orderStyles.linePrice}>{formatPeso(line.lineTotalInCentavos)}</Text>
             </View>)}
-          </ScrollView>
+          </View>
           <View style={[orderStyles.totalLine, orderStyles.grandTotal]}>
             <Text style={orderStyles.grandLabel}>Total</Text><Text style={orderStyles.grandValue}>{formatPeso(receipt.totalInCentavos)}</Text>
           </View>
-          <PrimaryButton label="Done" onPress={onDismiss} />
-        </View>
+          {!settled && <>
+            <Text style={orderStyles.cashLabel}>Cash tendered</Text>
+            <TextInput
+              testID="cash-tendered-input"
+              accessibilityLabel="Cash tendered"
+              value={tender}
+              onChangeText={setTender}
+              keyboardType="decimal-pad"
+              placeholder="0.00"
+              style={orderStyles.cashInput}
+            />
+            {!!result?.failureReason && <Text accessibilityRole="alert" style={orderStyles.error}>{result.failureReason}</Text>}
+            {!!error && <Text accessibilityRole="alert" style={orderStyles.error}>{error}</Text>}
+            <PrimaryButton label={saving ? "Saving payment…" : "Record cash payment"} disabled={saving || !tender.trim()} onPress={() => onPay(tender)} />
+            <Pressable accessibilityRole="button" accessibilityLabel="Cancel sale and return stock" disabled={saving} onPress={onCancel}>
+              <Text style={orderStyles.cancelSale}>Cancel sale and return stock</Text>
+            </Pressable>
+          </>}
+          {result?.status === "paid" && <Text accessibilityLabel={`Change due ${formatPeso(result.changeInCentavos)}`} style={orderStyles.changeText}>Change due: {formatPeso(result.changeInCentavos)}</Text>}
+          <PrimaryButton label={settled ? "Done" : "Keep pending"} disabled={saving} onPress={onDismiss} />
+        </ScrollView>
       </View>
     </Modal>
   );

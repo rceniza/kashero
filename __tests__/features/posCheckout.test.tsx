@@ -5,6 +5,7 @@ import type { CatalogItem } from "../../src/features/catalog/types";
 import type { User } from "../../src/features/auth/UserRepository";
 import type { SalesService } from "../../src/features/sales/SalesService";
 import type { SaleReceipt } from "../../src/features/sales/types";
+import type { PaymentService } from "../../src/features/payments/PaymentService";
 
 const item: CatalogItem = { id: "variant-rice", productId: "rice", name: "Brown rice", detail: "5 kg bag", category: "Grocery", price: 125050, color: "#E8DDD2", symbol: "✳" };
 const user: User = { id: "staff-1", displayName: "Sam Cashier", username: "sam", role: "cashier", isActive: true, createdAt: "", updatedAt: "" };
@@ -42,5 +43,22 @@ describe("POS checkout feature", () => {
     expect(await screen.findByText("Stock cannot be reduced below zero.")).toBeTruthy();
     expect(screen.getByText("Current order")).toBeTruthy();
     expect(screen.queryByText("Awaiting payment")).toBeNull();
+  });
+
+  it("recovers a pending sale after dismissing payment and records cash change", async () => {
+    const getLatestPendingSale = jest.fn(async () => receipt);
+    const recordCashPayment = jest.fn(async () => ({ paymentId: "payment-1", saleId: receipt.id, status: "paid" as const, amountInCentavos: receipt.totalInCentavos, tenderedInCentavos: 300000, changeInCentavos: 49900, failureReason: null }));
+    const paymentService = { getLatestPendingSale, recordCashPayment } as unknown as PaymentService;
+    await render(<PosScreen viewportWidth={320} user={user} catalogItems={[item]} categoryNames={["Grocery"]} paymentService={paymentService} />);
+
+    expect(await screen.findByText("Awaiting payment")).toBeTruthy();
+    await fireEvent.press(screen.getByRole("button", { name: "Keep pending" }));
+    await fireEvent.press(await screen.findByLabelText(`Resume payment ${receipt.receiptNumber}`));
+    await fireEvent.changeText(screen.getByLabelText("Cash tendered"), "3000.00");
+    await fireEvent.press(screen.getByRole("button", { name: "Record cash payment" }));
+
+    await waitFor(() => expect(recordCashPayment).toHaveBeenCalledWith(user.id, receipt.id, 300000));
+    expect(await screen.findByText("Payment complete")).toBeTruthy();
+    expect(screen.getByText("Change due: ₱499.00")).toBeTruthy();
   });
 });

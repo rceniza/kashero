@@ -80,6 +80,8 @@ export const shellStyles = StyleSheet.create({
     marginTop: 5,
   },
   shift: { color: colors.success, fontSize: 12, fontWeight: "600" },
+  pendingPayment: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.md, backgroundColor: "#FFF0E8", marginBottom: spacing.md },
+  pendingPaymentText: { color: colors.espresso, fontSize: 12, fontWeight: "700" },
   sectionTitle: { color: colors.ink, fontSize: 17, fontWeight: "800" },
   mobileOrderBar: {
     position: "absolute",

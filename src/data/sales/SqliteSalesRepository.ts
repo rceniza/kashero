@@ -31,6 +31,10 @@ export class SqliteSalesRepository implements SalesRepository {
     let receipt: SaleReceipt | null = null;
 
     await this.database.withExclusiveTransactionAsync(async (transaction) => {
+      const pendingSale = await transaction.getFirstAsync<{ id: string }>(
+        "SELECT id FROM sales WHERE user_id = ? AND status = 'pending_payment' LIMIT 1", userId,
+      );
+      if (pendingSale) throw new Error("Complete or cancel the existing pending sale before recording another sale.");
       const prefix = `K-${dateToken}-`;
       const sequence = await transaction.getFirstAsync<{ count: number }>(
         "SELECT COUNT(*) AS count FROM sales WHERE receipt_number LIKE ?", `${prefix}%`,

@@ -13,6 +13,8 @@ import { SqliteInventoryRepository } from "../data/inventory/SqliteInventoryRepo
 import { InventoryService } from "../features/inventory/InventoryService";
 import { SqliteSalesRepository } from "../data/sales/SqliteSalesRepository";
 import { SalesService } from "../features/sales/SalesService";
+import { SqlitePaymentRepository } from "../data/payments/SqlitePaymentRepository";
+import { PaymentService } from "../features/payments/PaymentService";
 
 export default function IndexScreen() {
   const { loading, needsSetup, user, logout } = useAuth();
@@ -27,6 +29,10 @@ export default function IndexScreen() {
   );
   const salesService = useMemo(
     () => new SalesService(new SqliteSalesRepository(database)),
+    [database],
+  );
+  const paymentService = useMemo(
+    () => new PaymentService(new SqlitePaymentRepository(database)),
     [database],
   );
   const [catalogItems, setCatalogItems] = useState<CatalogItem[]>([]);
@@ -72,5 +78,5 @@ export default function IndexScreen() {
   if (!user) return <AuthScreen key={needsSetup ? "setup" : "login"} />;
   if (!catalogReady) return <View style={{ flex: 1, justifyContent: "center", backgroundColor: colors.background }}><ActivityIndicator color={colors.accent} /></View>;
   if (catalogError) return <View style={{ flex: 1, justifyContent: "center", backgroundColor: colors.background, padding: 24 }}><Text style={{ color: colors.ink }}>Could not load the catalog. Please restart Kashero.</Text></View>;
-  return <PosScreen user={user} onLogout={logout} catalogItems={catalogItems} categoryNames={categoryNames} catalogService={catalogService} inventoryService={inventoryService} salesService={salesService} onCatalogChanged={refreshCatalog} />;
+  return <PosScreen user={user} onLogout={logout} catalogItems={catalogItems} categoryNames={categoryNames} catalogService={catalogService} inventoryService={inventoryService} salesService={salesService} paymentService={paymentService} onCatalogChanged={refreshCatalog} />;
 }
