@@ -4,6 +4,7 @@ import type { PropsWithChildren } from "react";
 import { AuthService } from "./AuthService";
 import type { CredentialsInput } from "./credentials";
 import type { User } from "./UserRepository";
+import type { DiagnosticsService } from "../diagnostics/DiagnosticsService";
 
 type AuthContextValue = {
   loading: boolean;
@@ -19,8 +20,9 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({
   service,
+  diagnosticsService,
   children,
-}: PropsWithChildren<{ service: AuthService }>) {
+}: PropsWithChildren<{ service: AuthService; diagnosticsService?: DiagnosticsService }>) {
   const [loading, setLoading] = useState(true);
   const [needsSetup, setNeedsSetup] = useState(false);
   const [user, setUser] = useState<User | null>(null);
@@ -37,10 +39,11 @@ export function AuthProvider({
       if (mounted) {
         setError("Kashero could not open its local database.");
         setLoading(false);
+        recordDiagnosticFailure(diagnosticsService, "auth.database.open_failed");
       }
     });
     return () => { mounted = false; };
-  }, [service]);
+  }, [diagnosticsService, service]);
 
   const value = useMemo<AuthContextValue>(() => ({
     loading,
@@ -55,6 +58,7 @@ export function AuthProvider({
         setNeedsSetup(false);
       } catch (cause) {
         setError(cause instanceof Error ? cause.message : "Setup failed.");
+        recordDiagnosticFailure(diagnosticsService, "auth.owner_setup.failed", cause);
         throw cause;
       }
     },
@@ -65,6 +69,7 @@ export function AuthProvider({
       } catch (cause) {
         const message = cause instanceof Error ? cause.message : "Login failed.";
         setError(message);
+        recordDiagnosticFailure(diagnosticsService, "auth.login.failed", cause);
         throw cause;
       }
     },
@@ -72,9 +77,14 @@ export function AuthProvider({
       setUser(null);
       setError(null);
     },
-  }), [loading, needsSetup, user, error, service]);
+  }), [loading, needsSetup, user, error, service, diagnosticsService]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+function recordDiagnosticFailure(service: DiagnosticsService | undefined, event: string, error?: unknown): void {
+  if (!service) return;
+  void service.log("error", event, { errorType: error instanceof Error ? error.name : error === undefined ? "DatabaseError" : typeof error }).catch(() => undefined);
 }
 
 export function useAuth(): AuthContextValue {

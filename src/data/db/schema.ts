@@ -183,5 +183,17 @@ export const payments = sqliteTable("payments", {
   check("payments_terminal_reference_length_check", sql`${table.terminalReference} is null or length(${table.terminalReference}) <= 80`),
 ]);
 
+export const diagnosticLogs = sqliteTable("diagnostic_logs", {
+  id: text("id").primaryKey().notNull(),
+  occurredAt: text("occurred_at").notNull().default(utcSqlDefault),
+  severity: text("severity", { enum: ["info", "warning", "error"] }).notNull(),
+  event: text("event").notNull(),
+  metadataJson: text("metadata_json").notNull().default("{}"),
+}, (table) => [
+  check("diagnostic_logs_severity_check", sql`${table.severity} in ('info', 'warning', 'error')`),
+  check("diagnostic_logs_event_length", sql`length(trim(${table.event})) between 1 and 120`),
+  check("diagnostic_logs_metadata_size", sql`length(${table.metadataJson}) <= 4000`),
+]);
+
 export type UserRow = typeof users.$inferSelect;
 export type NewUserRow = typeof users.$inferInsert;

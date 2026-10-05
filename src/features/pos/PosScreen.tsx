@@ -34,6 +34,8 @@ import type { CashPaymentResult, TerminalProvider } from "../payments/types";
 import { parseCashTenderInCentavos } from "../payments/types";
 import { ReceiptPrintService } from "../receipts/ReceiptPrintService";
 import { UnconfiguredReceiptPrinter } from "../../data/receipts/UnconfiguredReceiptPrinter";
+import { DiagnosticsScreen } from "../diagnostics/DiagnosticsScreen";
+import type { DiagnosticsService } from "../diagnostics/DiagnosticsService";
 import {
   catalog,
   categories,
@@ -53,6 +55,7 @@ type Props = {
   salesService?: SalesService;
   paymentService?: PaymentService;
   receiptPrintService?: ReceiptPrintService;
+  diagnosticsService?: DiagnosticsService;
 };
 
 export function PosScreen({
@@ -67,6 +70,7 @@ export function PosScreen({
   salesService,
   paymentService,
   receiptPrintService,
+  diagnosticsService,
 }: Props) {
   const printing = receiptPrintService ?? defaultReceiptPrintService;
   const dimensions = useWindowDimensions();
@@ -94,6 +98,7 @@ export function PosScreen({
   const [paymentResult, setPaymentResult] = useState<CashPaymentResult | null>(null);
   const [paymentSaving, setPaymentSaving] = useState(false);
   const [paymentError, setPaymentError] = useState("");
+  const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const items = catalogItems ?? catalog;
   const visibleCategories = categoryNames ?? categories.slice(1);
   const selectedCategory = category === "All items" || visibleCategories.includes(category)
@@ -117,10 +122,13 @@ export function PosScreen({
       setLastSale(sale);
       setPendingSaleReady(true);
     }).catch(() => {
-      if (active) setPaymentError("Could not restore the pending payment. Please retry.");
+      if (active) {
+        setPaymentError("Could not restore the pending payment. Please retry.");
+        recordDiagnosticFailure(diagnosticsService, "pos.pending_payment.restore_failed", undefined, user.id);
+      }
     }).finally(() => { if (active) setPendingSaleReady(true); });
     return () => { active = false; };
-  }, [paymentService, user]);
+  }, [diagnosticsService, paymentService, user]);
   const addToCart = (item: CatalogItem) =>
     setCart((current) => {
       const existing = current.find((line) => line.item.id === item.id);
@@ -150,6 +158,7 @@ export function PosScreen({
       setOrderOpen(false);
     } catch (error) {
       setSaleError(error instanceof Error ? error.message : "Could not record this sale.");
+      recordDiagnosticFailure(diagnosticsService, "pos.checkout.create_failed", error, user.id);
     } finally {
       setSaleSaving(false);
     }
@@ -169,6 +178,7 @@ export function PosScreen({
       }
     } catch (error) {
       setPaymentError(error instanceof Error ? error.message : "Could not record this payment.");
+      recordDiagnosticFailure(diagnosticsService, "pos.payment.cash_failed", error, user.id, lastSale.id);
     } finally {
       setPaymentSaving(false);
     }
@@ -185,6 +195,7 @@ export function PosScreen({
       setLastSale({ ...lastSale, status: "paid" });
     } catch (error) {
       setPaymentError(error instanceof Error ? error.message : "Could not record this terminal payment.");
+      recordDiagnosticFailure(diagnosticsService, "pos.payment.terminal_failed", error, user.id, lastSale.id);
     } finally {
       setPaymentSaving(false);
     }
@@ -199,6 +210,7 @@ export function PosScreen({
       setPaymentResult(result);
     } catch (error) {
       setPaymentError(error instanceof Error ? error.message : "Could not record this terminal outcome.");
+      recordDiagnosticFailure(diagnosticsService, "pos.payment.terminal_outcome_failed", error, user.id, lastSale.id);
     } finally {
       setPaymentSaving(false);
     }
@@ -215,6 +227,7 @@ export function PosScreen({
       setLastSale({ ...lastSale, status: "voided" });
     } catch (error) {
       setPaymentError(error instanceof Error ? error.message : "Could not cancel this sale.");
+      recordDiagnosticFailure(diagnosticsService, "pos.sale.cancel_failed", error, user.id, lastSale.id);
     } finally {
       setPaymentSaving(false);
     }
@@ -231,6 +244,9 @@ export function PosScreen({
   }
   if (manageInventory && inventoryService && user) {
     return <InventoryScreen service={inventoryService} user={user} onClose={() => setManageInventory(false)} onStockChanged={onCatalogChanged} />;
+  }
+  if (diagnosticsOpen && diagnosticsService) {
+    return <DiagnosticsScreen service={diagnosticsService} onClose={() => setDiagnosticsOpen(false)} />;
   }
 
   return (
@@ -258,6 +274,7 @@ export function PosScreen({
           </Pressable>
           </>
         )}
+        {diagnosticsService && <Pressable accessibilityRole="button" accessibilityLabel="Diagnostics" onPress={() => setDiagnosticsOpen(true)} style={shellStyles.diagnosticsButton}><Text style={shellStyles.diagnosticsButtonText}>{tablet ? "Diagnostics" : "Logs"}</Text></Pressable>}
         <View style={shellStyles.staff}>
           <View style={shellStyles.onlineDot} />
           <Pressable accessibilityRole="button" accessibilityLabel="Sign out" onPress={onLogout}>
@@ -384,3 +401,10 @@ export function PosScreen({
 }
 
 const defaultReceiptPrintService = new ReceiptPrintService(new UnconfiguredReceiptPrinter());
+
+function recordDiagnosticFailure(service: DiagnosticsService | undefined, event: string, error: unknown, userId: string, recordId?: string): void {
+  if (!service) return;
+  const metadata: Record<string, unknown> = { userId, errorType: error instanceof Error ? error.name : typeof error };
+  if (recordId) metadata.recordId = recordId;
+  void service.log("error", event, metadata).catch(() => undefined);
+}

@@ -48,6 +48,8 @@ export const shellStyles = StyleSheet.create({
     backgroundColor: colors.success,
   },
   staffText: { color: colors.ink, fontSize: 12, fontWeight: "600" },
+  diagnosticsButton: { minHeight: 40, minWidth: 38, alignItems: "center", justifyContent: "center", paddingHorizontal: spacing.xs },
+  diagnosticsButtonText: { color: colors.accent, fontSize: 11, fontWeight: "700" },
   workspace: { flex: 1 },
   tabletWorkspace: {
     flexDirection: "row",

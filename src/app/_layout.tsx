@@ -8,6 +8,8 @@ import { initializeDatabase } from "../data/db/database";
 import { SqliteUserRepository } from "../data/users/SqliteUserRepository";
 import { AuthProvider } from "../features/auth/AuthProvider";
 import { AuthService } from "../features/auth/AuthService";
+import { DiagnosticsService } from "../features/diagnostics/DiagnosticsService";
+import { SqliteDiagnosticRepository } from "../data/diagnostics/SqliteDiagnosticRepository";
 
 export default function RootLayout() {
   return (
@@ -26,5 +28,9 @@ function AuthShell() {
     () => new AuthService(new SqliteUserRepository(database)),
     [database],
   );
-  return <AuthProvider service={service}><Stack screenOptions={{ headerShown: false }} /></AuthProvider>;
+  const diagnosticsService = useMemo(
+    () => new DiagnosticsService(new SqliteDiagnosticRepository(database)),
+    [database],
+  );
+  return <AuthProvider service={service} diagnosticsService={diagnosticsService}><Stack screenOptions={{ headerShown: false }} /></AuthProvider>;
 }

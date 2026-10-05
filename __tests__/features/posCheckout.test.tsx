@@ -8,6 +8,7 @@ import type { SaleReceipt } from "../../src/features/sales/types";
 import type { PaymentService } from "../../src/features/payments/PaymentService";
 import type { TerminalProvider } from "../../src/features/payments/types";
 import { ReceiptPrintService, type ReceiptPrinter } from "../../src/features/receipts/ReceiptPrintService";
+import type { DiagnosticsService } from "../../src/features/diagnostics/DiagnosticsService";
 
 const item: CatalogItem = { id: "variant-rice", productId: "rice", name: "Brown rice", detail: "5 kg bag", category: "Grocery", price: 125050, color: "#E8DDD2", symbol: "✳" };
 const user: User = { id: "staff-1", displayName: "Sam Cashier", username: "sam", role: "cashier", isActive: true, createdAt: "", updatedAt: "" };
@@ -45,6 +46,23 @@ describe("POS checkout feature", () => {
     expect(await screen.findByText("Stock cannot be reduced below zero.")).toBeTruthy();
     expect(screen.getByText("Current order")).toBeTruthy();
     expect(screen.queryByText("Awaiting payment")).toBeNull();
+  });
+
+  it("logs a safe diagnostic for a handled checkout failure and keeps the cart usable", async () => {
+    const createPendingSale = jest.fn().mockRejectedValue(new Error("password=private-value"));
+    const salesService = { createPendingSale } as unknown as SalesService;
+    const log = jest.fn(async () => undefined);
+    const diagnosticsService = { log } as unknown as DiagnosticsService;
+    await render(<PosScreen viewportWidth={320} user={user} catalogItems={[item]} categoryNames={["Grocery"]} salesService={salesService} diagnosticsService={diagnosticsService} />);
+
+    await fireEvent.press(screen.getByLabelText("Add Brown rice"));
+    await fireEvent.press(screen.getByRole("button", { name: /View order/ }));
+    await fireEvent.press(screen.getByRole("button", { name: "Record sale" }));
+
+    expect(await screen.findByText("password=private-value")).toBeTruthy();
+    await waitFor(() => expect(log).toHaveBeenCalledWith("error", "pos.checkout.create_failed", { userId: user.id, errorType: "Error" }));
+    expect(screen.getByLabelText("Decrease Brown rice")).toBeTruthy();
+    expect(JSON.stringify(log.mock.calls[0])).not.toContain("password=private-value");
   });
 
   it("recovers a pending sale after dismissing payment and records cash change", async () => {

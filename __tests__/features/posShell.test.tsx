@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react-native";
 
 import { PosScreen } from "../../src/features/pos/PosScreen";
 import type { CatalogItem } from "../../src/features/catalog/types";
+import type { DiagnosticsService } from "../../src/features/diagnostics/DiagnosticsService";
 
 describe("responsive POS shell", () => {
   it("keeps catalog search, category and order summary available at 320px", async () => {
@@ -56,5 +57,19 @@ describe("responsive POS shell", () => {
     await fireEvent.changeText(screen.getByLabelText("Search products"), "5 kg");
     expect(screen.getByText("Brown rice")).toBeTruthy();
     expect(screen.getByTestId("product-card-variant-rice")).toBeTruthy();
+  });
+
+  it("opens and closes diagnostics from the narrow-phone POS header", async () => {
+    const diagnosticsService = {
+      listRecent: jest.fn(async () => []),
+      exportText: jest.fn(async () => "{}"),
+      log: jest.fn(async () => undefined),
+    } as unknown as DiagnosticsService;
+    await render(<PosScreen viewportWidth={320} diagnosticsService={diagnosticsService} />);
+    await fireEvent.press(screen.getByRole("button", { name: "Diagnostics" }));
+    expect(screen.getByText("Diagnostics")).toBeTruthy();
+    expect(screen.getByText("No diagnostics have been recorded.")).toBeTruthy();
+    await fireEvent.press(screen.getByRole("button", { name: "Close diagnostics" }));
+    expect(screen.getByTestId("pos-shell-phone")).toBeTruthy();
   });
 });
