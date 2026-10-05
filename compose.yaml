@@ -1,0 +1,16 @@
+services:
+  kashero:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    init: true
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+      - node_modules:/workspace/node_modules
+    environment:
+      EXPO_NO_TELEMETRY: "1"
+    command: ["npm", "run", "check"]
+
+volumes:
+  node_modules:

@@ -27,7 +27,8 @@
     "test": "jest --runInBand",
     "test:watch": "jest --watch",
     "lint": "expo lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "check": "npm test && npm run lint && npm run typecheck"
   },
   "private": true,
   "engines": {

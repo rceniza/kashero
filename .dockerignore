@@ -1,0 +1,11 @@
+.git
+.expo
+.claude
+node_modules
+ios
+android
+dist
+web-build
+coverage
+*.log
+.DS_Store
