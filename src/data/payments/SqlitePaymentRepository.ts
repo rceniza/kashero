@@ -1,6 +1,6 @@
 import { createUuid, utcNowIso } from "../../shared/ids";
 import { calculateStockAfter } from "../../features/inventory/types";
-import { calculateCashSettlement, type CashPaymentResult } from "../../features/payments/types";
+import { calculateCashSettlement, type CashPaymentResult, type TerminalProvider } from "../../features/payments/types";
 import type { PaymentRepository } from "../../features/payments/PaymentRepository";
 import type { CalculatedSaleLine, SaleReceipt } from "../../features/sales/types";
 
@@ -43,7 +43,7 @@ export class SqlitePaymentRepository implements PaymentRepository {
       result = {
         paymentId, saleId, status: settlement.status, amountInCentavos: sale.total_in_centavos,
         tenderedInCentavos, changeInCentavos: settlement.changeInCentavos,
-        failureReason: settlement.failureReason,
+        failureReason: settlement.failureReason, method: "cash",
       };
       await transaction.runAsync(
         `INSERT INTO payments (id, sale_id, user_id, method, status, amount_in_centavos,
@@ -61,6 +61,50 @@ export class SqlitePaymentRepository implements PaymentRepository {
       }
     });
     if (!result) throw new Error("Cash payment could not be recorded.");
+    return result;
+  }
+
+  recordTerminalPayment(userId: string, saleId: string, provider: TerminalProvider, approvalCode: string, terminalReference: string | null) {
+    return this.recordTerminalAttempt(userId, saleId, provider, "paid", approvalCode, terminalReference);
+  }
+
+  recordTerminalOutcome(userId: string, saleId: string, provider: TerminalProvider, status: "failed" | "cancelled", terminalReference: string | null) {
+    return this.recordTerminalAttempt(userId, saleId, provider, status, null, terminalReference);
+  }
+
+  private async recordTerminalAttempt(
+    userId: string, saleId: string, provider: TerminalProvider,
+    status: "paid" | "failed" | "cancelled", approvalCode: string | null, terminalReference: string | null,
+  ): Promise<CashPaymentResult> {
+    const paymentId = createUuid();
+    const now = utcNowIso();
+    let result: CashPaymentResult | null = null;
+    await this.database.withExclusiveTransactionAsync(async (transaction) => {
+      const sale = await this.requirePendingSale(transaction, userId, saleId);
+      const amount = sale.total_in_centavos;
+      const tendered = status === "paid" ? amount : 0;
+      const failureReason = status === "failed" ? "Terminal payment was declined." : null;
+      await transaction.runAsync(
+        `INSERT INTO payments (id, sale_id, user_id, method, status, amount_in_centavos,
+          tendered_in_centavos, change_in_centavos, approval_code, terminal_reference,
+          failure_reason, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?)`,
+        paymentId, saleId, userId, provider, status, amount, tendered, approvalCode,
+        terminalReference, failureReason, now, now,
+      );
+      if (status === "paid") {
+        const updated = await transaction.runAsync(
+          "UPDATE sales SET status = 'paid', updated_at = ? WHERE id = ? AND status = 'pending_payment'",
+          now, saleId,
+        );
+        if (updated.changes !== 1) throw new Error("Sale was already completed or cancelled.");
+      }
+      result = {
+        paymentId, saleId, status, amountInCentavos: amount,
+        tenderedInCentavos: tendered, changeInCentavos: 0, failureReason, method: provider,
+      };
+    });
+    if (!result) throw new Error("Terminal payment could not be recorded.");
     return result;
   }
 
@@ -98,7 +142,7 @@ export class SqlitePaymentRepository implements PaymentRepository {
       );
       result = {
         paymentId, saleId, status: "cancelled", amountInCentavos: sale.total_in_centavos,
-        tenderedInCentavos: 0, changeInCentavos: 0, failureReason: "Sale cancelled by cashier.",
+        tenderedInCentavos: 0, changeInCentavos: 0, failureReason: "Sale cancelled by cashier.", method: "cash",
       };
     });
     if (!result) throw new Error("Pending sale could not be cancelled.");

@@ -30,7 +30,7 @@ import type { User } from "../auth/UserRepository";
 import type { SalesService } from "../sales/SalesService";
 import type { SaleReceipt } from "../sales/types";
 import type { PaymentService } from "../payments/PaymentService";
-import type { CashPaymentResult } from "../payments/types";
+import type { CashPaymentResult, TerminalProvider } from "../payments/types";
 import { parseCashTenderInCentavos } from "../payments/types";
 import {
   catalog,
@@ -164,6 +164,36 @@ export function PosScreen({
       }
     } catch (error) {
       setPaymentError(error instanceof Error ? error.message : "Could not record this payment.");
+    } finally {
+      setPaymentSaving(false);
+    }
+  }
+
+  async function recordTerminalPayment(provider: TerminalProvider, approvalCode: string, reference: string) {
+    if (!paymentService || !user || !lastSale || paymentSaving) return;
+    setPaymentSaving(true);
+    setPaymentError("");
+    try {
+      const result = await paymentService.recordTerminalPayment(user.id, lastSale.id, provider, approvalCode, reference);
+      setPaymentResult(result);
+      setPendingSale(null);
+      setLastSale({ ...lastSale, status: "paid" });
+    } catch (error) {
+      setPaymentError(error instanceof Error ? error.message : "Could not record this terminal payment.");
+    } finally {
+      setPaymentSaving(false);
+    }
+  }
+
+  async function recordTerminalOutcome(provider: TerminalProvider, status: "failed" | "cancelled", reference: string) {
+    if (!paymentService || !user || !lastSale || paymentSaving) return;
+    setPaymentSaving(true);
+    setPaymentError("");
+    try {
+      const result = await paymentService.recordTerminalOutcome(user.id, lastSale.id, provider, status, reference);
+      setPaymentResult(result);
+    } catch (error) {
+      setPaymentError(error instanceof Error ? error.message : "Could not record this terminal outcome.");
     } finally {
       setPaymentSaving(false);
     }
@@ -343,7 +373,7 @@ export function PosScreen({
           checkoutError={saleError}
         />
       )}
-      {!!lastSale && <SaleConfirmation receipt={lastSale} onDismiss={() => setLastSale(null)} onPay={recordCashPayment} onCancel={cancelPendingSale} saving={paymentSaving} error={paymentError} result={paymentResult} />}
+      {!!lastSale && <SaleConfirmation receipt={lastSale} onDismiss={() => setLastSale(null)} onCashPay={recordCashPayment} onTerminalPay={recordTerminalPayment} onTerminalOutcome={recordTerminalOutcome} onCancel={cancelPendingSale} saving={paymentSaving} error={paymentError} result={paymentResult} />}
     </View>
   );
 }

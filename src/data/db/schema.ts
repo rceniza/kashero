@@ -168,6 +168,8 @@ export const payments = sqliteTable("payments", {
   amountInCentavos: integer("amount_in_centavos").notNull(),
   tenderedInCentavos: integer("tendered_in_centavos").notNull(),
   changeInCentavos: integer("change_in_centavos").notNull().default(0),
+  approvalCode: text("approval_code"),
+  terminalReference: text("terminal_reference"),
   failureReason: text("failure_reason"),
   createdAt: text("created_at").notNull().default(utcSqlDefault),
   updatedAt: text("updated_at").notNull().default(utcSqlDefault),
@@ -176,6 +178,9 @@ export const payments = sqliteTable("payments", {
   check("payments_status_check", sql`${table.status} in ('pending', 'paid', 'failed', 'cancelled')`),
   check("payments_amounts_integer_nonnegative", sql`typeof(${table.amountInCentavos}) = 'integer' and typeof(${table.tenderedInCentavos}) = 'integer' and typeof(${table.changeInCentavos}) = 'integer' and ${table.amountInCentavos} >= 0 and ${table.tenderedInCentavos} >= 0 and ${table.changeInCentavos} >= 0`),
   check("payments_settlement_check", sql`${table.status} <> 'paid' or (${table.method} = 'cash' and ${table.amountInCentavos} <= ${table.tenderedInCentavos} and ${table.changeInCentavos} = ${table.tenderedInCentavos} - ${table.amountInCentavos}) or (${table.method} in ('maya_terminal', 'metrobank_terminal') and ${table.amountInCentavos} = ${table.tenderedInCentavos} and ${table.changeInCentavos} = 0)`),
+  check("payments_terminal_approval_check", sql`${table.status} <> 'paid' or ${table.method} = 'cash' or (${table.approvalCode} is not null and length(trim(${table.approvalCode})) > 0)`),
+  check("payments_reference_length_check", sql`${table.approvalCode} is null or length(${table.approvalCode}) <= 40`),
+  check("payments_terminal_reference_length_check", sql`${table.terminalReference} is null or length(${table.terminalReference}) <= 80`),
 ]);
 
 export type UserRow = typeof users.$inferSelect;

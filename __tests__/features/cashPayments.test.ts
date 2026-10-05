@@ -6,12 +6,12 @@ import { SqliteSalesRepository } from "../../src/data/sales/SqliteSalesRepositor
 import { SqlitePaymentRepository } from "../../src/data/payments/SqlitePaymentRepository";
 import { PaymentService } from "../../src/features/payments/PaymentService";
 import { SalesService } from "../../src/features/sales/SalesService";
-import { applyMigrations } from "../../test-support/applyMigrations";
+import { applyMigrationAt, applyMigrations } from "../../test-support/applyMigrations";
 
-function setup() {
+function setup(migrationCount?: number) {
   const database = new DatabaseSync(":memory:");
   database.exec("PRAGMA foreign_keys = ON");
-  applyMigrations((statement) => database.exec(statement));
+  applyMigrations((statement) => database.exec(statement), migrationCount);
   const executor = (db: DatabaseSync) => ({
     async getAllAsync<T>(query: string, ...params: unknown[]) { return db.prepare(query).all(...(params as SQLInputValue[])) as T[]; },
     async getFirstAsync<T>(query: string, ...params: unknown[]) { return (db.prepare(query).get(...(params as SQLInputValue[])) as T | undefined) ?? null; },
@@ -89,6 +89,62 @@ describe("cash payment feature", () => {
     const state = setup();
     await createPending(state);
     await expect(createPending(state, 6, "Coffee")).rejects.toThrow("Complete or cancel the existing pending sale");
+    state.database.close();
+  });
+
+  it.each([
+    ["maya_terminal", "M-APPROVED-71", "maya-ref-01"],
+    ["metrobank_terminal", "B-APPROVED-42", "metro-ref-02"],
+  ] as const)("records confirmed %s payment by its approval code", async (provider, approvalCode, reference) => {
+    const state = setup();
+    const { sale, variantId } = await createPending(state);
+    await expect(state.payments.recordTerminalPayment("cashier-1", sale.id, provider, "", reference)).rejects.toThrow("approval code");
+    expect(state.database.prepare("SELECT COUNT(*) AS count FROM payments WHERE sale_id = ?").get(sale.id)).toMatchObject({ count: 0 });
+
+    const result = await state.payments.recordTerminalPayment("cashier-1", sale.id, provider, approvalCode, reference);
+    expect(result).toMatchObject({ method: provider, status: "paid", amountInCentavos: 2500, tenderedInCentavos: 2500, changeInCentavos: 0 });
+    expect(state.database.prepare("SELECT method, status, amount_in_centavos, approval_code, terminal_reference, user_id FROM payments WHERE sale_id = ?").get(sale.id)).toMatchObject({
+      method: provider, status: "paid", amount_in_centavos: 2500, approval_code: approvalCode, terminal_reference: reference, user_id: "cashier-1",
+    });
+    expect(state.database.prepare("SELECT status FROM sales WHERE id = ?").get(sale.id)).toMatchObject({ status: "paid" });
+    expect(state.database.prepare("SELECT quantity_on_hand FROM inventory WHERE variant_id = ?").get(variantId)).toMatchObject({ quantity_on_hand: 4 });
+    expect(state.database.prepare("PRAGMA table_info(payments)").all().map((column) => column.name)).not.toContain("card_number");
+    state.database.close();
+  });
+
+  it("keeps failed and cancelled terminal attempts pending until an approval is recorded", async () => {
+    const state = setup();
+    const { sale } = await createPending(state);
+    const failed = await state.payments.recordTerminalOutcome("cashier-1", sale.id, "metrobank_terminal", "failed", "decline-1");
+    expect(failed).toMatchObject({ method: "metrobank_terminal", status: "failed" });
+    const cancelled = await state.payments.recordTerminalOutcome("cashier-1", sale.id, "maya_terminal", "cancelled");
+    expect(cancelled).toMatchObject({ method: "maya_terminal", status: "cancelled" });
+    expect(state.database.prepare("SELECT status FROM sales WHERE id = ?").get(sale.id)).toMatchObject({ status: "pending_payment" });
+    expect(state.database.prepare("SELECT COUNT(*) AS count FROM payments WHERE sale_id = ?").get(sale.id)).toMatchObject({ count: 2 });
+    await state.payments.recordTerminalPayment("cashier-1", sale.id, "metrobank_terminal", "APPROVED-22");
+    expect(state.database.prepare("SELECT status FROM sales WHERE id = ?").get(sale.id)).toMatchObject({ status: "paid" });
+    state.database.close();
+  });
+
+  it("validates provider and reference input before writing terminal attempts", async () => {
+    const state = setup();
+    const { sale } = await createPending(state);
+    await expect(state.payments.recordTerminalPayment("cashier-1", sale.id, "card", "OK-123")).rejects.toThrow("Choose Maya or Metrobank");
+    await expect(state.payments.recordTerminalPayment("cashier-1", sale.id, "maya_terminal", "OK-123", "ref with spaces")).rejects.toThrow("Terminal reference");
+    expect(state.database.prepare("SELECT COUNT(*) AS count FROM payments").get()).toMatchObject({ count: 0 });
+    state.database.close();
+  });
+
+  it("adds terminal fields to an existing database without changing cash payment records", async () => {
+    const state = setup(5);
+    const { sale } = await createPending(state);
+    const cash = await state.payments.recordCashPayment("cashier-1", sale.id, 2500);
+    applyMigrationAt((statement) => state.database.exec(statement), 5);
+
+    expect(state.database.prepare("SELECT id, status, method, amount_in_centavos, approval_code, terminal_reference FROM payments WHERE id = ?").get(cash.paymentId)).toMatchObject({
+      id: cash.paymentId, status: "paid", method: "cash", amount_in_centavos: 2500, approval_code: null, terminal_reference: null,
+    });
+    expect(state.database.prepare("SELECT status FROM sales WHERE id = ?").get(sale.id)).toMatchObject({ status: "paid" });
     state.database.close();
   });
 });

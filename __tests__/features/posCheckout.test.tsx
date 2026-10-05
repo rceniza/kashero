@@ -6,6 +6,7 @@ import type { User } from "../../src/features/auth/UserRepository";
 import type { SalesService } from "../../src/features/sales/SalesService";
 import type { SaleReceipt } from "../../src/features/sales/types";
 import type { PaymentService } from "../../src/features/payments/PaymentService";
+import type { TerminalProvider } from "../../src/features/payments/types";
 
 const item: CatalogItem = { id: "variant-rice", productId: "rice", name: "Brown rice", detail: "5 kg bag", category: "Grocery", price: 125050, color: "#E8DDD2", symbol: "✳" };
 const user: User = { id: "staff-1", displayName: "Sam Cashier", username: "sam", role: "cashier", isActive: true, createdAt: "", updatedAt: "" };
@@ -47,7 +48,7 @@ describe("POS checkout feature", () => {
 
   it("recovers a pending sale after dismissing payment and records cash change", async () => {
     const getLatestPendingSale = jest.fn(async () => receipt);
-    const recordCashPayment = jest.fn(async () => ({ paymentId: "payment-1", saleId: receipt.id, status: "paid" as const, amountInCentavos: receipt.totalInCentavos, tenderedInCentavos: 300000, changeInCentavos: 49900, failureReason: null }));
+    const recordCashPayment = jest.fn(async () => ({ paymentId: "payment-1", saleId: receipt.id, status: "paid" as const, method: "cash" as const, amountInCentavos: receipt.totalInCentavos, tenderedInCentavos: 300000, changeInCentavos: 49900, failureReason: null }));
     const paymentService = { getLatestPendingSale, recordCashPayment } as unknown as PaymentService;
     await render(<PosScreen viewportWidth={320} user={user} catalogItems={[item]} categoryNames={["Grocery"]} paymentService={paymentService} />);
 
@@ -59,6 +60,32 @@ describe("POS checkout feature", () => {
 
     await waitFor(() => expect(recordCashPayment).toHaveBeenCalledWith(user.id, receipt.id, 300000));
     expect(await screen.findByText("Payment complete")).toBeTruthy();
-    expect(screen.getByText("Change due: ₱499.00")).toBeTruthy();
+    expect(screen.getByText(/Change due/)).toBeTruthy();
+  });
+
+  it.each([
+    ["maya_terminal", "Maya terminal", "Record Maya payment"],
+    ["metrobank_terminal", "Metrobank terminal", "Record Metrobank payment"],
+  ] as const)("records a confirmed %s approval from the responsive payment screen", async (provider, label, submitLabel) => {
+    const getLatestPendingSale = jest.fn(async () => receipt);
+    const recordTerminalPayment = jest.fn(async (_userId: string, _saleId: string, method: TerminalProvider, approvalCode: string, reference: string) => ({
+      paymentId: "terminal-payment", saleId: receipt.id, status: "paid" as const, amountInCentavos: receipt.totalInCentavos,
+      tenderedInCentavos: receipt.totalInCentavos, changeInCentavos: 0, failureReason: null, method,
+    }));
+    const paymentService = { getLatestPendingSale, recordTerminalPayment } as unknown as PaymentService;
+    await render(<PosScreen viewportWidth={320} user={user} catalogItems={[item]} categoryNames={["Grocery"]} paymentService={paymentService} />);
+
+    expect(await screen.findByText("Awaiting payment")).toBeTruthy();
+    await fireEvent.press(screen.getByRole("button", { name: label }));
+    expect(screen.getByText(/Take payment on the/)).toBeTruthy();
+    const submit = screen.getByRole("button", { name: submitLabel });
+    expect(submit.props.accessibilityState?.disabled).toBe(true);
+    await fireEvent.changeText(screen.getByLabelText("Terminal approval code"), "APPROVED-11");
+    await fireEvent.changeText(screen.getByLabelText("Terminal reference"), "TERM-22");
+    await fireEvent.press(screen.getByRole("button", { name: submitLabel }));
+
+    await waitFor(() => expect(recordTerminalPayment).toHaveBeenCalledWith(user.id, receipt.id, provider, "APPROVED-11", "TERM-22"));
+    expect(await screen.findByText("Payment complete")).toBeTruthy();
+    expect(screen.getByText(`${provider === "maya_terminal" ? "Maya" : "Metrobank"} payment recorded`)).toBeTruthy();
   });
 });

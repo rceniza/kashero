@@ -8,7 +8,7 @@ import { orderStyles } from "./order.styles";
 import { shellStyles } from "./shell.styles";
 import type { CatalogItem } from "../catalog/types";
 import type { SaleReceipt } from "../sales/types";
-import type { CashPaymentResult } from "../payments/types";
+import type { CashPaymentResult, TerminalProvider, PaymentMethod } from "../payments/types";
 
 export type CartLine = { item: CatalogItem; quantity: number };
 
@@ -174,18 +174,25 @@ function CartLineRow({ line, onIncrease, onDecrease }: { line: CartLine; onIncre
 }
 
 export function SaleConfirmation({
-  receipt, onDismiss, onPay, onCancel, saving = false, error = "", result = null,
+  receipt, onDismiss, onCashPay, onTerminalPay, onTerminalOutcome, onCancel, saving = false, error = "", result = null,
 }: {
   receipt: SaleReceipt;
   onDismiss: () => void;
-  onPay: (tender: string) => void;
+  onCashPay: (tender: string) => void;
+  onTerminalPay: (provider: TerminalProvider, approvalCode: string, reference: string) => void;
+  onTerminalOutcome: (provider: TerminalProvider, status: "failed" | "cancelled", reference: string) => void;
   onCancel: () => void;
   saving?: boolean;
   error?: string;
   result?: CashPaymentResult | null;
 }) {
   const [tender, setTender] = useState("");
-  const settled = result?.status === "paid" || result?.status === "cancelled";
+  const [method, setMethod] = useState<PaymentMethod>("cash");
+  const [approvalCode, setApprovalCode] = useState("");
+  const [terminalReference, setTerminalReference] = useState("");
+  const activeResult = result?.method === method ? result : null;
+  const settled = result?.status === "paid" || (result?.status === "cancelled" && receipt.status === "voided");
+  const selectedProvider = method === "cash" ? null : method;
   return (
     <Modal visible transparent animationType="slide" onRequestClose={onDismiss}>
       <View style={orderStyles.confirmationBackdrop}>
@@ -195,7 +202,7 @@ export function SaleConfirmation({
           contentContainerStyle={orderStyles.confirmationCardContent}
         >
           <Text style={orderStyles.confirmationEyebrow}>{receipt.status === "paid" ? "SALE PAID" : receipt.status === "voided" ? "SALE CANCELLED" : "SALE SAVED"}</Text>
-          <Text style={orderStyles.confirmationTitle}>{result?.status === "paid" ? "Payment complete" : result?.status === "cancelled" ? "Sale cancelled" : "Awaiting payment"}</Text>
+          <Text style={orderStyles.confirmationTitle}>{activeResult?.status === "paid" ? "Payment complete" : activeResult?.status === "cancelled" ? receipt.status === "voided" ? "Sale cancelled" : "Terminal attempt cancelled" : "Awaiting payment"}</Text>
           <Text style={orderStyles.confirmationReceipt}>{receipt.receiptNumber}</Text>
           <View style={orderStyles.confirmationLines}>
             {receipt.lines.map((line) => <View key={line.variantId} style={orderStyles.orderLine}>
@@ -208,24 +215,44 @@ export function SaleConfirmation({
             <Text style={orderStyles.grandLabel}>Total</Text><Text style={orderStyles.grandValue}>{formatPeso(receipt.totalInCentavos)}</Text>
           </View>
           {!settled && <>
-            <Text style={orderStyles.cashLabel}>Cash tendered</Text>
-            <TextInput
-              testID="cash-tendered-input"
-              accessibilityLabel="Cash tendered"
-              value={tender}
-              onChangeText={setTender}
-              keyboardType="decimal-pad"
-              placeholder="0.00"
-              style={orderStyles.cashInput}
-            />
-            {!!result?.failureReason && <Text accessibilityRole="alert" style={orderStyles.error}>{result.failureReason}</Text>}
+            <View style={orderStyles.paymentMethods}>
+              {(["cash", "maya_terminal", "metrobank_terminal"] as const).map((option) => (
+                <Pressable key={option} accessibilityRole="button" accessibilityLabel={option === "cash" ? "Cash" : `${option === "maya_terminal" ? "Maya" : "Metrobank"} terminal`} accessibilityState={{ selected: method === option }} onPress={() => { setMethod(option); setApprovalCode(""); setTerminalReference(""); }} style={[orderStyles.paymentMethod, method === option && orderStyles.selectedPaymentMethod]}>
+                  <Text style={[orderStyles.paymentMethodText, method === option && orderStyles.selectedPaymentMethodText]}>{option === "cash" ? "Cash" : option === "maya_terminal" ? "Maya" : "Metrobank"}</Text>
+                </Pressable>
+              ))}
+            </View>
+            {method === "cash" ? <>
+              <Text style={orderStyles.cashLabel}>Cash tendered</Text>
+              <TextInput
+                testID="cash-tendered-input"
+                accessibilityLabel="Cash tendered"
+                value={tender}
+                onChangeText={setTender}
+                keyboardType="decimal-pad"
+                placeholder="0.00"
+                style={orderStyles.cashInput}
+              />
+            </> : <>
+              <Text style={orderStyles.terminalInstructions}>Take payment on the {method === "maya_terminal" ? "Maya" : "Metrobank"} terminal. Record an approval code only after the terminal approves.</Text>
+              <Text style={orderStyles.cashLabel}>Approval code</Text>
+              <TextInput testID="terminal-approval-code" accessibilityLabel="Terminal approval code" value={approvalCode} onChangeText={setApprovalCode} autoCapitalize="characters" placeholder="Enter approval code" style={orderStyles.cashInput} />
+              <Text style={orderStyles.cashLabel}>Terminal reference (optional)</Text>
+              <TextInput testID="terminal-reference" accessibilityLabel="Terminal reference" value={terminalReference} onChangeText={setTerminalReference} autoCapitalize="characters" placeholder="Optional reference" style={orderStyles.cashInput} />
+            </>}
+            {!!activeResult?.failureReason && <Text accessibilityRole="alert" style={orderStyles.error}>{activeResult.failureReason}</Text>}
             {!!error && <Text accessibilityRole="alert" style={orderStyles.error}>{error}</Text>}
-            <PrimaryButton label={saving ? "Saving payment…" : "Record cash payment"} disabled={saving || !tender.trim()} onPress={() => onPay(tender)} />
+            {method === "cash" ? <PrimaryButton label={saving ? "Saving payment…" : "Record cash payment"} disabled={saving || !tender.trim()} onPress={() => onCashPay(tender)} /> : <>
+              <PrimaryButton label={saving ? "Saving payment…" : `Record ${method === "maya_terminal" ? "Maya" : "Metrobank"} payment`} disabled={saving || !approvalCode.trim()} accessibilityState={{ disabled: saving || !approvalCode.trim() }} onPress={() => selectedProvider && onTerminalPay(selectedProvider, approvalCode, terminalReference)} />
+              <Pressable accessibilityRole="button" disabled={saving} onPress={() => { if (selectedProvider) { onTerminalOutcome(selectedProvider, "failed", terminalReference); setApprovalCode(""); } }}><Text style={orderStyles.terminalOutcome}>Record terminal decline</Text></Pressable>
+              <Pressable accessibilityRole="button" disabled={saving} onPress={() => { if (selectedProvider) { onTerminalOutcome(selectedProvider, "cancelled", terminalReference); setApprovalCode(""); } }}><Text style={orderStyles.terminalOutcome}>Cancel terminal attempt</Text></Pressable>
+            </>}
             <Pressable accessibilityRole="button" accessibilityLabel="Cancel sale and return stock" disabled={saving} onPress={onCancel}>
               <Text style={orderStyles.cancelSale}>Cancel sale and return stock</Text>
             </Pressable>
           </>}
-          {result?.status === "paid" && <Text accessibilityLabel={`Change due ${formatPeso(result.changeInCentavos)}`} style={orderStyles.changeText}>Change due: {formatPeso(result.changeInCentavos)}</Text>}
+          {activeResult?.status === "paid" && activeResult.method === "cash" && <Text accessibilityLabel={`Change due ${formatPeso(activeResult.changeInCentavos)}`} style={orderStyles.changeText}>Change due: {formatPeso(activeResult.changeInCentavos)}</Text>}
+          {activeResult?.status === "paid" && activeResult.method !== "cash" && <Text style={orderStyles.changeText}>{activeResult.method === "maya_terminal" ? "Maya" : "Metrobank"} payment recorded</Text>}
           <PrimaryButton label={settled ? "Done" : "Keep pending"} disabled={saving} onPress={onDismiss} />
         </ScrollView>
       </View>
