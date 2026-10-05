@@ -1,4 +1,4 @@
-import { ScrollView, Text, View } from "react-native";
+import { Modal, Pressable, ScrollView, Text, View } from "react-native";
 
 import { PrimaryButton } from "../../components/PrimaryButton";
 import { formatPeso } from "../../utils/formatPeso";
@@ -6,6 +6,7 @@ import { catalogStyles } from "./catalog.styles";
 import { orderStyles } from "./order.styles";
 import { shellStyles } from "./shell.styles";
 import type { CatalogItem } from "../catalog/types";
+import type { SaleReceipt } from "../sales/types";
 
 export type CartLine = { item: CatalogItem; quantity: number };
 
@@ -52,10 +53,22 @@ export function OrderPanel({
   cart,
   total,
   count,
+  onIncrease,
+  onDecrease,
+  onCheckout,
+  checkoutLabel,
+  checkoutDisabled,
+  checkoutError,
 }: {
   cart: CartLine[];
   total: number;
   count: number;
+  onIncrease?: (item: CatalogItem) => void;
+  onDecrease?: (item: CatalogItem) => void;
+  onCheckout?: () => void;
+  checkoutLabel?: string;
+  checkoutDisabled?: boolean;
+  checkoutError?: string;
 }) {
   return (
     <View style={orderStyles.orderPanel}>
@@ -66,17 +79,7 @@ export function OrderPanel({
       <Text style={orderStyles.tableLabel}>Walk-in customer</Text>
       <ScrollView style={orderStyles.orderLines}>
         {cart.length ? (
-          cart.map(({ item, quantity }) => (
-            <View key={item.id} style={orderStyles.orderLine}>
-              <Text style={orderStyles.lineQty}>{quantity}×</Text>
-              <Text style={orderStyles.lineName} numberOfLines={1}>
-                {item.name}
-              </Text>
-              <Text style={orderStyles.linePrice}>
-                {formatPeso(item.price * quantity)}
-              </Text>
-            </View>
-          ))
+          cart.map((line) => <CartLineRow key={line.item.id} line={line} onIncrease={onIncrease} onDecrease={onDecrease} />)
         ) : (
           <Text style={orderStyles.orderEmpty}>
             Your order is empty.{`\n`}Tap an item to add it here.
@@ -89,20 +92,15 @@ export function OrderPanel({
       </View>
       <View style={orderStyles.totalLine}>
         <Text style={orderStyles.totalLabel}>Tax</Text>
-        <Text style={orderStyles.totalLabel}>—</Text>
+        <Text style={orderStyles.totalLabel}>{formatPeso(0)}</Text>
       </View>
       <View style={[orderStyles.totalLine, orderStyles.grandTotal]}>
         <Text style={orderStyles.grandLabel}>Total</Text>
         <Text style={orderStyles.grandValue}>{formatPeso(total)}</Text>
       </View>
-      <PrimaryButton
-        label="Checkout coming soon"
-        disabled
-        accessibilityLabel="Checkout coming soon"
-      />
-      <Text style={orderStyles.previewNote}>
-        Payment will be added in a later step
-      </Text>
+      <PrimaryButton label={checkoutLabel ?? "Checkout coming soon"} disabled={checkoutDisabled ?? true} onPress={onCheckout} />
+      {!!checkoutError && <Text accessibilityRole="alert" style={orderStyles.error}>{checkoutError}</Text>}
+      {!onCheckout && <Text style={orderStyles.previewNote}>Payment will be added in a later step</Text>}
     </View>
   );
 }
@@ -111,10 +109,22 @@ export function OrderSheet({
   cart,
   total,
   onClose,
+  onIncrease,
+  onDecrease,
+  onCheckout,
+  checkoutLabel,
+  checkoutDisabled,
+  checkoutError,
 }: {
   cart: CartLine[];
   total: number;
   onClose: () => void;
+  onIncrease?: (item: CatalogItem) => void;
+  onDecrease?: (item: CatalogItem) => void;
+  onCheckout?: () => void;
+  checkoutLabel?: string;
+  checkoutDisabled?: boolean;
+  checkoutError?: string;
 }) {
   return (
     <View style={orderStyles.sheetBackdrop}>
@@ -131,15 +141,7 @@ export function OrderSheet({
           </Text>
         </View>
         {cart.length ? (
-          cart.map(({ item, quantity }) => (
-            <View key={item.id} style={orderStyles.orderLine}>
-              <Text style={orderStyles.lineQty}>{quantity}×</Text>
-              <Text style={orderStyles.lineName}>{item.name}</Text>
-              <Text style={orderStyles.linePrice}>
-                {formatPeso(item.price * quantity)}
-              </Text>
-            </View>
-          ))
+          cart.map((line) => <CartLineRow key={line.item.id} line={line} onIncrease={onIncrease} onDecrease={onDecrease} />)
         ) : (
           <Text style={orderStyles.orderEmpty}>
             Add an item to get started.
@@ -149,8 +151,47 @@ export function OrderSheet({
           <Text style={orderStyles.grandLabel}>Total</Text>
           <Text style={orderStyles.grandValue}>{formatPeso(total)}</Text>
         </View>
-        <PrimaryButton label="Checkout coming soon" disabled />
+        <PrimaryButton label={checkoutLabel ?? "Checkout coming soon"} disabled={checkoutDisabled ?? true} onPress={onCheckout} />
+        {!!checkoutError && <Text accessibilityRole="alert" style={orderStyles.error}>{checkoutError}</Text>}
       </View>
     </View>
+  );
+}
+
+function CartLineRow({ line, onIncrease, onDecrease }: { line: CartLine; onIncrease?: (item: CatalogItem) => void; onDecrease?: (item: CatalogItem) => void }) {
+  const { item, quantity } = line;
+  return (
+    <View style={orderStyles.orderLine}>
+      <Pressable accessibilityRole="button" accessibilityLabel={`Decrease ${item.name}`} onPress={() => onDecrease?.(item)} style={orderStyles.quantityButton}><Text style={orderStyles.quantityButtonText}>−</Text></Pressable>
+      <Text accessibilityLabel={`${quantity} ${item.name}`} style={orderStyles.lineQty}>{quantity}×</Text>
+      <Pressable accessibilityRole="button" accessibilityLabel={`Increase ${item.name}`} onPress={() => onIncrease?.(item)} style={orderStyles.quantityButton}><Text style={orderStyles.quantityButtonText}>+</Text></Pressable>
+      <Text style={orderStyles.lineName} numberOfLines={1}>{item.name}</Text>
+      <Text style={orderStyles.linePrice}>{formatPeso(item.price * quantity)}</Text>
+    </View>
+  );
+}
+
+export function SaleConfirmation({ receipt, onDismiss }: { receipt: SaleReceipt; onDismiss: () => void }) {
+  return (
+    <Modal visible transparent animationType="slide" onRequestClose={onDismiss}>
+      <View style={orderStyles.confirmationBackdrop}>
+        <View style={orderStyles.confirmationCard}>
+          <Text style={orderStyles.confirmationEyebrow}>SALE SAVED</Text>
+          <Text style={orderStyles.confirmationTitle}>Awaiting payment</Text>
+          <Text style={orderStyles.confirmationReceipt}>{receipt.receiptNumber}</Text>
+          <ScrollView style={orderStyles.confirmationLines}>
+            {receipt.lines.map((line) => <View key={line.variantId} style={orderStyles.orderLine}>
+              <Text style={orderStyles.lineQty}>{line.quantity}×</Text>
+              <Text style={orderStyles.lineName}>{line.productName} · {line.variantName}</Text>
+              <Text style={orderStyles.linePrice}>{formatPeso(line.lineTotalInCentavos)}</Text>
+            </View>)}
+          </ScrollView>
+          <View style={[orderStyles.totalLine, orderStyles.grandTotal]}>
+            <Text style={orderStyles.grandLabel}>Total</Text><Text style={orderStyles.grandValue}>{formatPeso(receipt.totalInCentavos)}</Text>
+          </View>
+          <PrimaryButton label="Done" onPress={onDismiss} />
+        </View>
+      </View>
+    </Modal>
   );
 }

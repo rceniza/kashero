@@ -14,6 +14,7 @@ import {
   ProductCard,
   OrderPanel,
   OrderSheet,
+  SaleConfirmation,
   type CartLine,
 } from "./PosComponents";
 import { catalogStyles } from "./catalog.styles";
@@ -26,6 +27,8 @@ import type { CatalogItem } from "../catalog/types";
 import type { InventoryService } from "../inventory/InventoryService";
 import { InventoryScreen } from "../inventory/InventoryScreen";
 import type { User } from "../auth/UserRepository";
+import type { SalesService } from "../sales/SalesService";
+import type { SaleReceipt } from "../sales/types";
 import {
   catalog,
   categories,
@@ -42,6 +45,7 @@ type Props = {
   catalogService?: ProductCatalogService;
   onCatalogChanged?: () => Promise<void> | void;
   inventoryService?: InventoryService;
+  salesService?: SalesService;
 };
 
 export function PosScreen({
@@ -53,6 +57,7 @@ export function PosScreen({
   catalogService,
   onCatalogChanged,
   inventoryService,
+  salesService,
 }: Props) {
   const dimensions = useWindowDimensions();
   const width = viewportWidth ?? dimensions.width;
@@ -71,6 +76,9 @@ export function PosScreen({
   const [orderOpen, setOrderOpen] = useState(false);
   const [manageCatalog, setManageCatalog] = useState(false);
   const [manageInventory, setManageInventory] = useState(false);
+  const [saleSaving, setSaleSaving] = useState(false);
+  const [saleError, setSaleError] = useState("");
+  const [lastSale, setLastSale] = useState<SaleReceipt | null>(null);
   const items = catalogItems ?? catalog;
   const visibleCategories = categoryNames ?? categories.slice(1);
   const selectedCategory = category === "All items" || visibleCategories.includes(category)
@@ -96,6 +104,25 @@ export function PosScreen({
           )
         : [...current, { item, quantity: 1 }];
     });
+  const decreaseFromCart = (item: CatalogItem) =>
+    setCart((current) => current.flatMap((line) =>
+      line.item.id !== item.id ? [line] : line.quantity > 1 ? [{ ...line, quantity: line.quantity - 1 }] : [],
+    ));
+  async function recordSale() {
+    if (!salesService || !user || cart.length === 0 || saleSaving) return;
+    setSaleSaving(true);
+    setSaleError("");
+    try {
+      const receipt = await salesService.createPendingSale(user.id, cart.map(({ item, quantity }) => ({ variantId: item.id, quantity })));
+      setLastSale(receipt);
+      setCart([]);
+      setOrderOpen(false);
+    } catch (error) {
+      setSaleError(error instanceof Error ? error.message : "Could not record this sale.");
+    } finally {
+      setSaleSaving(false);
+    }
+  }
 
   if (manageCatalog && catalogService) {
     return (
@@ -218,7 +245,7 @@ export function PosScreen({
             )}
           </ScrollView>
         </View>
-        {tablet && <OrderPanel cart={cart} total={total} count={count} />}
+        {tablet && <OrderPanel cart={cart} total={total} count={count} onIncrease={addToCart} onDecrease={decreaseFromCart} onCheckout={salesService && user ? recordSale : undefined} checkoutLabel={salesService ? saleSaving ? "Saving sale…" : "Record sale" : "Checkout coming soon"} checkoutDisabled={!salesService || !user || cart.length === 0 || saleSaving} checkoutError={saleError} />}
       </View>
 
       {!tablet && (
@@ -242,8 +269,15 @@ export function PosScreen({
           cart={cart}
           total={total}
           onClose={() => setOrderOpen(false)}
+          onIncrease={addToCart}
+          onDecrease={decreaseFromCart}
+          onCheckout={salesService && user ? recordSale : undefined}
+          checkoutLabel={salesService ? saleSaving ? "Saving sale…" : "Record sale" : "Checkout coming soon"}
+          checkoutDisabled={!salesService || !user || cart.length === 0 || saleSaving}
+          checkoutError={saleError}
         />
       )}
+      {!!lastSale && <SaleConfirmation receipt={lastSale} onDismiss={() => setLastSale(null)} />}
     </View>
   );
 }

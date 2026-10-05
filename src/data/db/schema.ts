@@ -113,5 +113,51 @@ export const inventoryMovements = sqliteTable("inventory_movements", {
   check("inventory_movements_direction_check", sql`(${table.reason} in ('restock', 'return') and ${table.quantityChange} > 0) or (${table.reason} = 'sale' and ${table.quantityChange} < 0) or ${table.reason} = 'correction'`),
 ]);
 
+export const sales = sqliteTable("sales", {
+  id: text("id").primaryKey().notNull(),
+  receiptNumber: text("receipt_number").notNull(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "restrict" }),
+  status: text("status", { enum: ["pending_payment", "paid", "voided"] }).notNull().default("pending_payment"),
+  subtotalInCentavos: integer("subtotal_in_centavos").notNull(),
+  discountInCentavos: integer("discount_in_centavos").notNull().default(0),
+  taxInCentavos: integer("tax_in_centavos").notNull().default(0),
+  totalInCentavos: integer("total_in_centavos").notNull(),
+  createdAt: text("created_at").notNull().default(utcSqlDefault),
+  updatedAt: text("updated_at").notNull().default(utcSqlDefault),
+}, (table) => [
+  uniqueIndex("sales_receipt_number_unique").on(table.receiptNumber),
+  check("sales_status_check", sql`${table.status} in ('pending_payment', 'paid', 'voided')`),
+  check("sales_amounts_integer_nonnegative", sql`typeof(${table.subtotalInCentavos}) = 'integer' and typeof(${table.discountInCentavos}) = 'integer' and typeof(${table.taxInCentavos}) = 'integer' and typeof(${table.totalInCentavos}) = 'integer' and ${table.subtotalInCentavos} >= 0 and ${table.discountInCentavos} >= 0 and ${table.taxInCentavos} >= 0 and ${table.totalInCentavos} >= 0`),
+  check("sales_discount_limit", sql`${table.discountInCentavos} <= ${table.subtotalInCentavos}`),
+  check("sales_total_check", sql`${table.totalInCentavos} = ${table.subtotalInCentavos} - ${table.discountInCentavos} + ${table.taxInCentavos}`),
+]);
+
+export const saleItems = sqliteTable("sale_items", {
+  id: text("id").primaryKey().notNull(),
+  saleId: text("sale_id").notNull().references(() => sales.id, { onDelete: "restrict" }),
+  variantId: text("variant_id").notNull().references(() => productVariants.id, { onDelete: "restrict" }),
+  productName: text("product_name").notNull(),
+  variantName: text("variant_name").notNull(),
+  sku: text("sku"),
+  quantity: integer("quantity").notNull(),
+  unitPriceInCentavos: integer("unit_price_in_centavos").notNull(),
+  discountInCentavos: integer("discount_in_centavos").notNull().default(0),
+  taxRateBasisPoints: integer("tax_rate_basis_points"),
+  taxMode: text("tax_mode", { enum: ["exclusive", "inclusive"] }),
+  taxInCentavos: integer("tax_in_centavos").notNull().default(0),
+  lineTotalInCentavos: integer("line_total_in_centavos").notNull(),
+}, (table) => [
+  uniqueIndex("sale_items_sale_variant_unique").on(table.saleId, table.variantId),
+  check("sale_items_quantity_positive", sql`typeof(${table.quantity}) = 'integer' and ${table.quantity} > 0`),
+  check("sale_items_amounts_integer", sql`typeof(${table.unitPriceInCentavos}) = 'integer' and typeof(${table.discountInCentavos}) = 'integer' and typeof(${table.taxInCentavos}) = 'integer' and typeof(${table.lineTotalInCentavos}) = 'integer'`),
+  check("sale_items_unit_price_nonnegative", sql`${table.unitPriceInCentavos} >= 0`),
+  check("sale_items_discount_nonnegative", sql`${table.discountInCentavos} >= 0`),
+  check("sale_items_tax_rate_mode_check", sql`(${table.taxRateBasisPoints} is null and ${table.taxMode} is null and ${table.taxInCentavos} = 0) or (${table.taxRateBasisPoints} is not null and ${table.taxRateBasisPoints} >= 0 and ${table.taxMode} in ('exclusive', 'inclusive'))`),
+  check("sale_items_tax_nonnegative", sql`${table.taxInCentavos} >= 0`),
+  check("sale_items_discount_limit", sql`${table.discountInCentavos} <= ${table.quantity} * ${table.unitPriceInCentavos}`),
+  check("sale_items_line_total_nonnegative", sql`${table.lineTotalInCentavos} >= 0`),
+  check("sale_items_total_check", sql`(${table.taxMode} = 'inclusive' and ${table.lineTotalInCentavos} = ${table.quantity} * ${table.unitPriceInCentavos} - ${table.discountInCentavos}) or (${table.taxMode} is not 'inclusive' and ${table.lineTotalInCentavos} = ${table.quantity} * ${table.unitPriceInCentavos} - ${table.discountInCentavos} + ${table.taxInCentavos})`),
+]);
+
 export type UserRow = typeof users.$inferSelect;
 export type NewUserRow = typeof users.$inferInsert;
