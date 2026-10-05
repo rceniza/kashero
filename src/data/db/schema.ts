@@ -88,5 +88,30 @@ export const productVariants = sqliteTable(
   ],
 );
 
+export const inventory = sqliteTable("inventory", {
+  variantId: text("variant_id").primaryKey().notNull().references(() => productVariants.id, { onDelete: "restrict" }),
+  quantityOnHand: integer("quantity_on_hand").notNull().default(0),
+  updatedAt: text("updated_at").notNull().default(utcSqlDefault),
+}, (table) => [
+  check("inventory_quantity_integer", sql`typeof(${table.quantityOnHand}) = 'integer'`),
+  check("inventory_quantity_nonnegative", sql`${table.quantityOnHand} >= 0`),
+]);
+
+export const inventoryMovements = sqliteTable("inventory_movements", {
+  id: text("id").primaryKey().notNull(),
+  variantId: text("variant_id").notNull().references(() => productVariants.id, { onDelete: "restrict" }),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "restrict" }),
+  reason: text("reason", { enum: ["restock", "sale", "return", "correction"] }).notNull(),
+  quantityChange: integer("quantity_change").notNull(),
+  quantityAfter: integer("quantity_after").notNull(),
+  note: text("note").notNull().default(""),
+  occurredAt: text("occurred_at").notNull().default(utcSqlDefault),
+}, (table) => [
+  check("inventory_movements_reason_check", sql`${table.reason} in ('restock', 'sale', 'return', 'correction')`),
+  check("inventory_movements_delta_integer", sql`typeof(${table.quantityChange}) = 'integer' and ${table.quantityChange} <> 0`),
+  check("inventory_movements_balance_integer", sql`typeof(${table.quantityAfter}) = 'integer' and ${table.quantityAfter} >= 0`),
+  check("inventory_movements_direction_check", sql`(${table.reason} in ('restock', 'return') and ${table.quantityChange} > 0) or (${table.reason} = 'sale' and ${table.quantityChange} < 0) or ${table.reason} = 'correction'`),
+]);
+
 export type UserRow = typeof users.$inferSelect;
 export type NewUserRow = typeof users.$inferInsert;

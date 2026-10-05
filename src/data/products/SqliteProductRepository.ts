@@ -119,6 +119,9 @@ export class SqliteProductRepository implements ProductRepository {
          VALUES (?, ?, ?, ?, ?, ?, 1, 1, ?, ?)`,
         variantId, id, input.defaultVariantName, input.sku, input.barcode, input.priceInCentavos, now, now,
       );
+      await this.database.runAsync(
+        "INSERT INTO inventory (variant_id, quantity_on_hand, updated_at) VALUES (?, 0, ?)", variantId, now,
+      );
     });
     const category = await this.getCategory(input.categoryId);
     return {
@@ -160,12 +163,17 @@ export class SqliteProductRepository implements ProductRepository {
     if (!parent) throw new Error("Active product was not found.");
     const id = createUuid();
     const now = utcNowIso();
-    await this.database.runAsync(
-      `INSERT INTO product_variants
-        (id, product_id, name, sku, barcode, price_in_centavos, is_default, is_active, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, 0, 1, ?, ?)`,
-      id, productId, input.name, input.sku, input.barcode, input.priceInCentavos, now, now,
-    );
+    await this.database.withTransactionAsync(async () => {
+      await this.database.runAsync(
+        `INSERT INTO product_variants
+          (id, product_id, name, sku, barcode, price_in_centavos, is_default, is_active, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, 0, 1, ?, ?)`,
+        id, productId, input.name, input.sku, input.barcode, input.priceInCentavos, now, now,
+      );
+      await this.database.runAsync(
+        "INSERT INTO inventory (variant_id, quantity_on_hand, updated_at) VALUES (?, 0, ?)", id, now,
+      );
+    });
     return { id, productId, ...input, isDefault: false, isActive: true };
   }
 

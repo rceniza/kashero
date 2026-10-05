@@ -15,6 +15,13 @@
       "when": 1791193053609,
       "tag": "0001_green_komodo",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1791194258543,
+      "tag": "0002_nervous_zodiak",
+      "breakpoints": true
     }
   ]
 }

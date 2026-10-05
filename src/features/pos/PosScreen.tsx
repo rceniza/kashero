@@ -23,6 +23,8 @@ import { colors } from "../../theme/tokens";
 import type { ProductCatalogService } from "../catalog/ProductCatalogService";
 import { CatalogManagerScreen } from "../catalog/CatalogManagerScreen";
 import type { CatalogItem } from "../catalog/types";
+import type { InventoryService } from "../inventory/InventoryService";
+import { InventoryScreen } from "../inventory/InventoryScreen";
 import type { User } from "../auth/UserRepository";
 import {
   catalog,
@@ -39,6 +41,7 @@ type Props = {
   categoryNames?: string[];
   catalogService?: ProductCatalogService;
   onCatalogChanged?: () => Promise<void> | void;
+  inventoryService?: InventoryService;
 };
 
 export function PosScreen({
@@ -49,6 +52,7 @@ export function PosScreen({
   categoryNames,
   catalogService,
   onCatalogChanged,
+  inventoryService,
 }: Props) {
   const dimensions = useWindowDimensions();
   const width = viewportWidth ?? dimensions.width;
@@ -66,6 +70,7 @@ export function PosScreen({
   const [cart, setCart] = useState<CartLine[]>([]);
   const [orderOpen, setOrderOpen] = useState(false);
   const [manageCatalog, setManageCatalog] = useState(false);
+  const [manageInventory, setManageInventory] = useState(false);
   const items = catalogItems ?? catalog;
   const visibleCategories = categoryNames ?? categories.slice(1);
   const selectedCategory = category === "All items" || visibleCategories.includes(category)
@@ -101,6 +106,9 @@ export function PosScreen({
       />
     );
   }
+  if (manageInventory && inventoryService && user) {
+    return <InventoryScreen service={inventoryService} user={user} onClose={() => setManageInventory(false)} onStockChanged={onCatalogChanged} />;
+  }
 
   return (
     <View
@@ -117,15 +125,20 @@ export function PosScreen({
             {tablet && <Text style={shellStyles.store}>COUNTER 01 · MAIN STORE</Text>}
           </View>
         </View>
-        {catalogService && user && (user.role === "owner" || user.role === "manager") && (
+        {catalogService && inventoryService && user && (user.role === "owner" || user.role === "manager") && (
+          <>
           <Pressable accessibilityRole="button" accessibilityLabel="Manage catalog" onPress={() => setManageCatalog(true)}>
-            <Text style={shellStyles.staffText}>Catalog</Text>
+            <Text style={shellStyles.staffText}>{tablet ? "Catalog" : "Items"}</Text>
           </Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel="Manage inventory" onPress={() => setManageInventory(true)}>
+            <Text style={shellStyles.staffText}>Stock</Text>
+          </Pressable>
+          </>
         )}
         <View style={shellStyles.staff}>
           <View style={shellStyles.onlineDot} />
           <Pressable accessibilityRole="button" accessibilityLabel="Sign out" onPress={onLogout}>
-            <Text style={shellStyles.staffText}>{user ? `${user.displayName} · ${user.role}` : "Alex · Cashier"}</Text>
+            <Text numberOfLines={1} style={[shellStyles.staffText, !tablet && { maxWidth: 76 }]}>{user ? `${user.displayName}${tablet ? ` · ${user.role}` : ""}` : "Alex · Cashier"}</Text>
           </Pressable>
         </View>
       </View>
