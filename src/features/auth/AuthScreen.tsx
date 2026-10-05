@@ -32,7 +32,7 @@ export function AuthScreen() {
         <Text style={styles.subtitle}>{needsSetup ? "Create the owner account to get started." : "Sign in to start your shift."}</Text>
         {needsSetup && <Field label="Your name" value={displayName} onChangeText={setDisplayName} autoCapitalize="words" />}
         <Field label="Username" value={username} onChangeText={setUsername} autoCapitalize="none" />
-        <Field label="Password" value={password} onChangeText={setPassword} secureTextEntry />
+        <Field label="Password" value={password} onChangeText={setPassword} autoCapitalize="none" secureTextEntry />
         {error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
         <PrimaryButton label={busy ? "Please wait…" : needsSetup ? "Create owner account" : "Sign in"} onPress={submit} disabled={busy} />
       </ScrollView>
