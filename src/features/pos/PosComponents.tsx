@@ -9,6 +9,8 @@ import { shellStyles } from "./shell.styles";
 import type { CatalogItem } from "../catalog/types";
 import type { SaleReceipt } from "../sales/types";
 import type { CashPaymentResult, TerminalProvider, PaymentMethod } from "../payments/types";
+import { ReceiptPreview, receiptPaymentDetails } from "../receipts/ReceiptPreview";
+import type { ReceiptPrintService } from "../receipts/ReceiptPrintService";
 
 export type CartLine = { item: CatalogItem; quantity: number };
 
@@ -174,7 +176,7 @@ function CartLineRow({ line, onIncrease, onDecrease }: { line: CartLine; onIncre
 }
 
 export function SaleConfirmation({
-  receipt, onDismiss, onCashPay, onTerminalPay, onTerminalOutcome, onCancel, saving = false, error = "", result = null,
+  receipt, onDismiss, onCashPay, onTerminalPay, onTerminalOutcome, onCancel, receiptPrintService, saving = false, error = "", result = null,
 }: {
   receipt: SaleReceipt;
   onDismiss: () => void;
@@ -182,6 +184,7 @@ export function SaleConfirmation({
   onTerminalPay: (provider: TerminalProvider, approvalCode: string, reference: string) => void;
   onTerminalOutcome: (provider: TerminalProvider, status: "failed" | "cancelled", reference: string) => void;
   onCancel: () => void;
+  receiptPrintService: ReceiptPrintService;
   saving?: boolean;
   error?: string;
   result?: CashPaymentResult | null;
@@ -190,6 +193,7 @@ export function SaleConfirmation({
   const [method, setMethod] = useState<PaymentMethod>("cash");
   const [approvalCode, setApprovalCode] = useState("");
   const [terminalReference, setTerminalReference] = useState("");
+  const [receiptPreviewOpen, setReceiptPreviewOpen] = useState(false);
   const activeResult = result?.method === method ? result : null;
   const settled = result?.status === "paid" || (result?.status === "cancelled" && receipt.status === "voided");
   const selectedProvider = method === "cash" ? null : method;
@@ -253,9 +257,11 @@ export function SaleConfirmation({
           </>}
           {activeResult?.status === "paid" && activeResult.method === "cash" && <Text accessibilityLabel={`Change due ${formatPeso(activeResult.changeInCentavos)}`} style={orderStyles.changeText}>Change due: {formatPeso(activeResult.changeInCentavos)}</Text>}
           {activeResult?.status === "paid" && activeResult.method !== "cash" && <Text style={orderStyles.changeText}>{activeResult.method === "maya_terminal" ? "Maya" : "Metrobank"} payment recorded</Text>}
+          {activeResult?.status === "paid" && <Pressable accessibilityRole="button" accessibilityLabel="Preview receipt" onPress={() => setReceiptPreviewOpen(true)}><Text style={orderStyles.receiptPreviewLink}>Preview receipt</Text></Pressable>}
           <PrimaryButton label={settled ? "Done" : "Keep pending"} disabled={saving} onPress={onDismiss} />
         </ScrollView>
       </View>
+      {activeResult?.status === "paid" && receiptPreviewOpen && <ReceiptPreview receipt={receipt} payment={receiptPaymentDetails(activeResult, approvalCode)} printService={receiptPrintService} onClose={() => setReceiptPreviewOpen(false)} />}
     </Modal>
   );
 }

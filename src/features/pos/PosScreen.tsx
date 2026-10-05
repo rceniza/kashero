@@ -32,6 +32,8 @@ import type { SaleReceipt } from "../sales/types";
 import type { PaymentService } from "../payments/PaymentService";
 import type { CashPaymentResult, TerminalProvider } from "../payments/types";
 import { parseCashTenderInCentavos } from "../payments/types";
+import { ReceiptPrintService } from "../receipts/ReceiptPrintService";
+import { UnconfiguredReceiptPrinter } from "../../data/receipts/UnconfiguredReceiptPrinter";
 import {
   catalog,
   categories,
@@ -50,6 +52,7 @@ type Props = {
   inventoryService?: InventoryService;
   salesService?: SalesService;
   paymentService?: PaymentService;
+  receiptPrintService?: ReceiptPrintService;
 };
 
 export function PosScreen({
@@ -63,7 +66,9 @@ export function PosScreen({
   inventoryService,
   salesService,
   paymentService,
+  receiptPrintService,
 }: Props) {
+  const printing = receiptPrintService ?? defaultReceiptPrintService;
   const dimensions = useWindowDimensions();
   const width = viewportWidth ?? dimensions.width;
   const tablet = isTabletLayout(width);
@@ -373,7 +378,9 @@ export function PosScreen({
           checkoutError={saleError}
         />
       )}
-      {!!lastSale && <SaleConfirmation receipt={lastSale} onDismiss={() => setLastSale(null)} onCashPay={recordCashPayment} onTerminalPay={recordTerminalPayment} onTerminalOutcome={recordTerminalOutcome} onCancel={cancelPendingSale} saving={paymentSaving} error={paymentError} result={paymentResult} />}
+      {!!lastSale && <SaleConfirmation receipt={lastSale} receiptPrintService={printing} onDismiss={() => setLastSale(null)} onCashPay={recordCashPayment} onTerminalPay={recordTerminalPayment} onTerminalOutcome={recordTerminalOutcome} onCancel={cancelPendingSale} saving={paymentSaving} error={paymentError} result={paymentResult} />}
     </View>
   );
 }
+
+const defaultReceiptPrintService = new ReceiptPrintService(new UnconfiguredReceiptPrinter());
