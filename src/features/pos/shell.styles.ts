@@ -14,6 +14,7 @@ export const shellStyles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
+  phoneHeader: { minHeight: 64, paddingHorizontal: spacing.md },
   brandRow: { flexDirection: "row", alignItems: "center", gap: spacing.md },
   brandMark: {
     width: 38,

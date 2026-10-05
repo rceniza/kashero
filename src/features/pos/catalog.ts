@@ -1,3 +1,5 @@
+import type { CatalogItem } from "../catalog/types";
+
 export const categories = [
   "All items",
   "Coffee",
@@ -5,21 +7,14 @@ export const categories = [
   "Bakery",
   "Grocery",
 ] as const;
-export type Category = (typeof categories)[number];
+export type Category = string;
 
-export type CatalogItem = {
-  id: string;
-  name: string;
-  detail: string;
-  category: Exclude<Category, "All items">;
-  price: number;
-  color: string;
-  symbol: string;
-};
+export type { CatalogItem } from "../catalog/types";
 
 export const catalog: CatalogItem[] = [
   {
     id: "latte",
+    productId: "latte",
     name: "Café latte",
     detail: "Regular · Hot",
     category: "Coffee",
@@ -29,6 +24,7 @@ export const catalog: CatalogItem[] = [
   },
   {
     id: "americano",
+    productId: "americano",
     name: "Americano",
     detail: "Regular · Hot",
     category: "Coffee",
@@ -38,6 +34,7 @@ export const catalog: CatalogItem[] = [
   },
   {
     id: "matcha",
+    productId: "matcha",
     name: "Matcha cloud",
     detail: "Iced · 16 oz",
     category: "Tea",
@@ -47,6 +44,7 @@ export const catalog: CatalogItem[] = [
   },
   {
     id: "croissant",
+    productId: "croissant",
     name: "Butter croissant",
     detail: "Freshly baked",
     category: "Bakery",
@@ -56,6 +54,7 @@ export const catalog: CatalogItem[] = [
   },
   {
     id: "beans",
+    productId: "beans",
     name: "House blend",
     detail: "Whole bean · 250 g",
     category: "Grocery",
@@ -65,6 +64,7 @@ export const catalog: CatalogItem[] = [
   },
   {
     id: "cookie",
+    productId: "cookie",
     name: "Choco cookie",
     detail: "Bakery · Single",
     category: "Bakery",

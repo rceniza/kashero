@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react-native";
 
 import { PosScreen } from "../../src/features/pos/PosScreen";
+import type { CatalogItem } from "../../src/features/catalog/types";
 
 describe("responsive POS shell", () => {
   it("keeps catalog search, category and order summary available at 320px", async () => {
@@ -30,10 +31,30 @@ describe("responsive POS shell", () => {
   });
 
   it("shows an order panel beside the catalog on tablet widths", async () => {
-    await render(<PosScreen viewportWidth={1024} />);
+    const products: CatalogItem[] = [{
+      id: "variant-beans", productId: "beans", name: "House blend", detail: "Whole bean · 250 g",
+      category: "Grocery", price: 38000, color: "#E8DDD2", symbol: "✳",
+    }];
+    await render(<PosScreen viewportWidth={1024} catalogItems={products} categoryNames={["Grocery"]} />);
     expect(screen.getByTestId("pos-shell-tablet")).toBeTruthy();
     expect(screen.getByText("Current order")).toBeTruthy();
     expect(screen.getByText("Checkout coming soon")).toBeTruthy();
     expect(screen.queryByRole("button", { name: /View order/ })).toBeNull();
+    await fireEvent.press(screen.getByRole("button", { name: "Grocery" }));
+    await fireEvent.changeText(screen.getByLabelText("Search products"), "250 g");
+    expect(screen.getByTestId("product-card-variant-beans")).toBeTruthy();
+  });
+
+  it("browses a persisted category and product on a narrow phone", async () => {
+    const products: CatalogItem[] = [{
+      id: "variant-rice", productId: "rice", name: "Brown rice", detail: "5 kg bag",
+      category: "Grocery", price: 125050, color: "#E8DDD2", symbol: "✳",
+    }];
+    await render(<PosScreen viewportWidth={320} catalogItems={products} categoryNames={["Grocery"]} />);
+    expect(screen.getByText("Brown rice")).toBeTruthy();
+    await fireEvent.press(screen.getByRole("button", { name: "Grocery" }));
+    await fireEvent.changeText(screen.getByLabelText("Search products"), "5 kg");
+    expect(screen.getByText("Brown rice")).toBeTruthy();
+    expect(screen.getByTestId("product-card-variant-rice")).toBeTruthy();
   });
 });

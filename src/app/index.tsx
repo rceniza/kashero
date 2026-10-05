@@ -1,13 +1,64 @@
-import { ActivityIndicator, View } from "react-native";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, Text, View } from "react-native";
+import { useSQLiteContext } from "expo-sqlite";
 
 import { AuthScreen } from "../features/auth/AuthScreen";
 import { useAuth } from "../features/auth/AuthProvider";
 import { PosScreen } from "../features/pos/PosScreen";
 import { colors } from "../theme/tokens";
+import { SqliteProductRepository } from "../data/products/SqliteProductRepository";
+import { ProductCatalogService } from "../features/catalog/ProductCatalogService";
+import type { CatalogItem } from "../features/catalog/types";
 
 export default function IndexScreen() {
   const { loading, needsSetup, user, logout } = useAuth();
+  const database = useSQLiteContext();
+  const catalogService = useMemo(
+    () => new ProductCatalogService(new SqliteProductRepository(database)),
+    [database],
+  );
+  const [catalogItems, setCatalogItems] = useState<CatalogItem[]>([]);
+  const [categoryNames, setCategoryNames] = useState<string[]>([]);
+  const [catalogReady, setCatalogReady] = useState(false);
+  const [catalogError, setCatalogError] = useState(false);
+
+  const refreshCatalog = useCallback(async () => {
+    try {
+      const [items, categories] = await Promise.all([
+        catalogService.listPosCatalog(),
+        catalogService.listCategories(),
+      ]);
+      setCatalogItems(items);
+      setCategoryNames(categories.map(({ name }) => name));
+      setCatalogError(false);
+      setCatalogReady(true);
+    } catch {
+      setCatalogError(true);
+      setCatalogReady(true);
+    }
+  }, [catalogService]);
+
+  useEffect(() => {
+    let mounted = true;
+    Promise.all([catalogService.listPosCatalog(), catalogService.listCategories()])
+      .then(([items, categories]) => {
+        if (!mounted) return;
+        setCatalogItems(items);
+        setCategoryNames(categories.map(({ name }) => name));
+        setCatalogError(false);
+        setCatalogReady(true);
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setCatalogError(true);
+        setCatalogReady(true);
+      });
+    return () => { mounted = false; };
+  }, [catalogService]);
+
   if (loading) return <View style={{ flex: 1, justifyContent: "center", backgroundColor: colors.background }}><ActivityIndicator color={colors.accent} /></View>;
   if (!user) return <AuthScreen key={needsSetup ? "setup" : "login"} />;
-  return <PosScreen user={user} onLogout={logout} />;
+  if (!catalogReady) return <View style={{ flex: 1, justifyContent: "center", backgroundColor: colors.background }}><ActivityIndicator color={colors.accent} /></View>;
+  if (catalogError) return <View style={{ flex: 1, justifyContent: "center", backgroundColor: colors.background, padding: 24 }}><Text style={{ color: colors.ink }}>Could not load the catalog. Please restart Kashero.</Text></View>;
+  return <PosScreen user={user} onLogout={logout} catalogItems={catalogItems} categoryNames={categoryNames} catalogService={catalogService} onCatalogChanged={refreshCatalog} />;
 }

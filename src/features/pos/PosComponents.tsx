@@ -5,7 +5,7 @@ import { formatPeso } from "../../utils/formatPeso";
 import { catalogStyles } from "./catalog.styles";
 import { orderStyles } from "./order.styles";
 import { shellStyles } from "./shell.styles";
-import type { CatalogItem } from "./catalog";
+import type { CatalogItem } from "../catalog/types";
 
 export type CartLine = { item: CatalogItem; quantity: number };
 

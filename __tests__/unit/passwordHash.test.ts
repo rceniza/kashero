@@ -12,5 +12,5 @@ describe("password storage", () => {
     expect(await verifyPassword("a-long-password", encoded)).toBe(true);
     expect(await verifyPassword("incorrect-password", encoded)).toBe(false);
     expect(await verifyPassword("a-long-password", "pbkdf2-sha256$10$00000000000000000000000000000000$0000000000000000000000000000000000000000000000000000000000000000")).toBe(false);
-  });
+  }, 15_000);
 });

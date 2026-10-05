@@ -20,18 +20,36 @@ import { catalogStyles } from "./catalog.styles";
 import { shellStyles } from "./shell.styles";
 import { getProductColumns, isTabletLayout } from "../../shared/layout";
 import { colors } from "../../theme/tokens";
+import type { ProductCatalogService } from "../catalog/ProductCatalogService";
+import { CatalogManagerScreen } from "../catalog/CatalogManagerScreen";
+import type { CatalogItem } from "../catalog/types";
 import type { User } from "../auth/UserRepository";
 import {
   catalog,
   categories,
   filterCatalog,
-  type CatalogItem,
   type Category,
 } from "./catalog";
 
-type Props = { viewportWidth?: number; user?: User; onLogout?: () => void };
+type Props = {
+  viewportWidth?: number;
+  user?: User;
+  onLogout?: () => void;
+  catalogItems?: CatalogItem[];
+  categoryNames?: string[];
+  catalogService?: ProductCatalogService;
+  onCatalogChanged?: () => Promise<void> | void;
+};
 
-export function PosScreen({ viewportWidth, user, onLogout }: Props) {
+export function PosScreen({
+  viewportWidth,
+  user,
+  onLogout,
+  catalogItems,
+  categoryNames,
+  catalogService,
+  onCatalogChanged,
+}: Props) {
   const dimensions = useWindowDimensions();
   const width = viewportWidth ?? dimensions.width;
   const tablet = isTabletLayout(width);
@@ -47,9 +65,15 @@ export function PosScreen({ viewportWidth, user, onLogout }: Props) {
   const [query, setQuery] = useState("");
   const [cart, setCart] = useState<CartLine[]>([]);
   const [orderOpen, setOrderOpen] = useState(false);
+  const [manageCatalog, setManageCatalog] = useState(false);
+  const items = catalogItems ?? catalog;
+  const visibleCategories = categoryNames ?? categories.slice(1);
+  const selectedCategory = category === "All items" || visibleCategories.includes(category)
+    ? category
+    : "All items";
   const products = useMemo(
-    () => filterCatalog(catalog, category, query),
-    [category, query],
+    () => filterCatalog(items, selectedCategory, query),
+    [selectedCategory, query, items],
   );
   const count = cart.reduce((sum, line) => sum + line.quantity, 0);
   const total = cart.reduce(
@@ -68,21 +92,36 @@ export function PosScreen({ viewportWidth, user, onLogout }: Props) {
         : [...current, { item, quantity: 1 }];
     });
 
+  if (manageCatalog && catalogService) {
+    return (
+      <CatalogManagerScreen
+        service={catalogService}
+        onClose={() => setManageCatalog(false)}
+        onCatalogChanged={onCatalogChanged}
+      />
+    );
+  }
+
   return (
     <View
       style={shellStyles.screen}
       testID={`pos-shell-${tablet ? "tablet" : "phone"}`}
     >
-      <View style={shellStyles.header}>
+      <View style={[shellStyles.header, !tablet && shellStyles.phoneHeader]}>
         <View style={shellStyles.brandRow}>
           <View style={shellStyles.brandMark}>
             <Text style={shellStyles.brandLetter}>K</Text>
           </View>
           <View>
             <Text style={shellStyles.brand}>kashero</Text>
-            <Text style={shellStyles.store}>COUNTER 01 · MAIN STORE</Text>
+            {tablet && <Text style={shellStyles.store}>COUNTER 01 · MAIN STORE</Text>}
           </View>
         </View>
+        {catalogService && user && (user.role === "owner" || user.role === "manager") && (
+          <Pressable accessibilityRole="button" accessibilityLabel="Manage catalog" onPress={() => setManageCatalog(true)}>
+            <Text style={shellStyles.staffText}>Catalog</Text>
+          </Pressable>
+        )}
         <View style={shellStyles.staff}>
           <View style={shellStyles.onlineDot} />
           <Pressable accessibilityRole="button" accessibilityLabel="Sign out" onPress={onLogout}>
@@ -116,8 +155,8 @@ export function PosScreen({ viewportWidth, user, onLogout }: Props) {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={catalogStyles.categoryList}
           >
-            {categories.map((item) => {
-              const selected = category === item;
+            {["All items", ...visibleCategories].map((item) => {
+              const selected = selectedCategory === item;
               return (
                 <Pressable
                   key={item}
