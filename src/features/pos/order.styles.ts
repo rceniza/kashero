@@ -1,0 +1,96 @@
+import { StyleSheet } from "react-native";
+
+import { colors, radius, spacing } from "../../theme/tokens";
+
+export const orderStyles = StyleSheet.create({
+  orderPanel: {
+    width: 320,
+    padding: spacing.xl,
+    borderRadius: radius.lg,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.line,
+    marginBottom: spacing.xl,
+  },
+  orderHeading: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  orderNumber: { color: colors.muted, fontSize: 11, fontWeight: "700" },
+  tableLabel: { color: colors.muted, fontSize: 12, marginTop: spacing.md },
+  orderLines: {
+    flexGrow: 0,
+    minHeight: 150,
+    maxHeight: 300,
+    marginTop: spacing.lg,
+  },
+  orderLine: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderColor: colors.line,
+  },
+  lineQty: { color: colors.accent, width: 26, fontSize: 12, fontWeight: "700" },
+  lineName: { flex: 1, color: colors.ink, fontSize: 12, fontWeight: "600" },
+  linePrice: { color: colors.ink, fontSize: 12, fontWeight: "700" },
+  orderEmpty: {
+    color: colors.muted,
+    textAlign: "center",
+    lineHeight: 22,
+    paddingTop: 42,
+    fontSize: 13,
+  },
+  totalLine: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingVertical: spacing.sm,
+  },
+  totalLabel: { color: colors.muted, fontSize: 12 },
+  totalValue: { color: colors.ink, fontSize: 12, fontWeight: "600" },
+  grandTotal: {
+    marginTop: spacing.sm,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderColor: colors.line,
+    marginBottom: spacing.md,
+  },
+  grandLabel: { color: colors.ink, fontSize: 16, fontWeight: "800" },
+  grandValue: { color: colors.espresso, fontSize: 18, fontWeight: "800" },
+  previewNote: {
+    color: colors.muted,
+    textAlign: "center",
+    fontSize: 10,
+    marginTop: spacing.sm,
+  },
+  keepBrowsing: {
+    color: colors.accent,
+    textAlign: "center",
+    fontSize: 12,
+    fontWeight: "700",
+    paddingTop: spacing.md,
+  },
+  sheetBackdrop: {
+    ...StyleSheet.absoluteFill,
+    justifyContent: "flex-end",
+    backgroundColor: "#211B1680",
+  },
+  sheet: {
+    padding: spacing.xl,
+    paddingBottom: 34,
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: radius.lg,
+    borderTopRightRadius: radius.lg,
+  },
+  sheetHandle: {
+    alignSelf: "center",
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.line,
+    marginBottom: spacing.lg,
+  },
+  close: { color: colors.accent, fontSize: 13, fontWeight: "700" },
+});

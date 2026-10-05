@@ -13,6 +13,8 @@ npm start
 
 Use `npm start` to start Metro. Use `npm run android` or `npm run ios` to build and launch the native app on a connected device or simulator; these commands require the Android SDK or Xcode and CocoaPods on the host machine.
 
+The current POS screen is a responsive UI prototype with sample catalog items. It supports category/search filtering and a temporary in-memory order preview; database persistence and checkout are planned for later tasks.
+
 ## Checks
 
 ```sh
@@ -29,7 +31,7 @@ Docker provides a consistent Node 22 environment for automated checks. Build the
 docker compose run --build --rm kashero
 ```
 
-Run an individual command in the same environment, for example `docker compose run --rm kashero npm test`. Rebuild after changing dependencies with `docker compose build --no-cache`; remove the cached dependency volume with `docker compose down --volumes` if it needs a clean reinstall.
+Run an individual command in the same environment, for example `docker compose run --rm kashero npm test`. Rebuild after changing dependencies with `docker compose build --no-cache`; remove the cached `kashero_sdk57_node_modules` dependency volume with `docker compose down --volumes` if it needs a clean reinstall.
 
 Use the host Expo commands (`npm start`, `npm run ios`, or `npm run android`) for simulator and physical-device testing. Docker on macOS does not provide direct access to the host iOS Simulator, Android SDK/emulator, Bluetooth printer, or bank terminal. A containerized Metro server can also advertise an address that a phone cannot reach, so use the host Metro server for reliable live device testing.
 

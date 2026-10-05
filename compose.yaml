@@ -7,10 +7,11 @@ services:
     working_dir: /workspace
     volumes:
       - .:/workspace
-      - node_modules:/workspace/node_modules
+      - kashero_node_modules:/workspace/node_modules
     environment:
       EXPO_NO_TELEMETRY: "1"
     command: ["npm", "run", "check"]
 
 volumes:
-  node_modules:
+  kashero_node_modules:
+    name: kashero_sdk57_node_modules
