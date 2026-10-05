@@ -11,7 +11,7 @@ npm install
 npm start
 ```
 
-Use `npm run android` or `npm run ios` to open the development server for a connected device or simulator. Native simulator builds require the relevant Android or Xcode tools on the host machine.
+Use `npm start` to start Metro. Use `npm run android` or `npm run ios` to build and launch the native app on a connected device or simulator; these commands require the Android SDK or Xcode and CocoaPods on the host machine.
 
 ## Checks
 
