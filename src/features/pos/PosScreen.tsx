@@ -20,6 +20,7 @@ import { catalogStyles } from "./catalog.styles";
 import { shellStyles } from "./shell.styles";
 import { getProductColumns, isTabletLayout } from "../../shared/layout";
 import { colors } from "../../theme/tokens";
+import type { User } from "../auth/UserRepository";
 import {
   catalog,
   categories,
@@ -28,9 +29,9 @@ import {
   type Category,
 } from "./catalog";
 
-type Props = { viewportWidth?: number };
+type Props = { viewportWidth?: number; user?: User; onLogout?: () => void };
 
-export function PosScreen({ viewportWidth }: Props) {
+export function PosScreen({ viewportWidth, user, onLogout }: Props) {
   const dimensions = useWindowDimensions();
   const width = viewportWidth ?? dimensions.width;
   const tablet = isTabletLayout(width);
@@ -84,7 +85,9 @@ export function PosScreen({ viewportWidth }: Props) {
         </View>
         <View style={shellStyles.staff}>
           <View style={shellStyles.onlineDot} />
-          <Text style={shellStyles.staffText}>Alex · Cashier</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel="Sign out" onPress={onLogout}>
+            <Text style={shellStyles.staffText}>{user ? `${user.displayName} · ${user.role}` : "Alex · Cashier"}</Text>
+          </Pressable>
         </View>
       </View>
 
@@ -95,7 +98,7 @@ export function PosScreen({ viewportWidth }: Props) {
           <View style={shellStyles.headingRow}>
             <View>
               <Text style={shellStyles.eyebrow}>{today}</Text>
-              <Text style={shellStyles.heading}>Good morning, Alex</Text>
+              <Text style={shellStyles.heading}>Good morning{user ? `, ${user.displayName}` : ", Alex"}</Text>
             </View>
             {tablet && <Text style={shellStyles.shift}>● Shift active</Text>}
           </View>

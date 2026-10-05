@@ -3,10 +3,14 @@
   "version": "1.0.0",
   "main": "expo-router/entry",
   "dependencies": {
+    "@noble/hashes": "^2.4.0",
+    "drizzle-orm": "^0.45.3",
     "expo": "~57.0.26",
     "expo-constants": "~57.0.20",
+    "expo-crypto": "~57.0.3",
     "expo-linking": "~57.0.11",
     "expo-router": "~57.0.24",
+    "expo-sqlite": "~57.0.3",
     "expo-status-bar": "~57.0.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
@@ -17,7 +21,11 @@
   "devDependencies": {
     "@testing-library/react-native": "^14.0.1",
     "@types/jest": "29.5.14",
+    "@types/node": "^22.20.5",
     "@types/react": "~19.2.2",
+    "babel-plugin-inline-import": "^3.0.0",
+    "babel-preset-expo": "~57.0.13",
+    "drizzle-kit": "^0.31.11",
     "eslint": "^9.0.0",
     "eslint-config-expo": "~57.0.2",
     "jest": "~29.7.0",
@@ -32,6 +40,8 @@
     "web": "expo start --web",
     "test": "jest --runInBand",
     "test:watch": "jest --watch",
+    "db:generate": "drizzle-kit generate",
+    "db:check": "drizzle-kit check",
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
     "check": "npm test && npm run lint && npm run typecheck"
@@ -41,6 +51,14 @@
     "node": ">=22.13.0 <23"
   },
   "jest": {
-    "preset": "jest-expo"
+    "preset": "jest-expo",
+    "transformIgnorePatterns": [
+      "/node_modules/(?!(.pnpm|react-native|@react-native|@react-native-community|expo|@expo|@expo-google-fonts|react-navigation|@react-navigation|@sentry/react-native|native-base|standard-navigation|@noble/hashes|expo-modules-core)/)",
+      "/node_modules/react-native-reanimated/plugin/",
+      "/node_modules/@react-native/babel-preset/"
+    ],
+    "setupFilesAfterEnv": [
+      "<rootDir>/jest.setup.ts"
+    ]
   }
 }
