@@ -32,4 +32,56 @@ describe("inventory screen feature", () => {
     expect(screen.getByText(/Morning delivery/)).toBeTruthy();
     expect(screen.getByText("7 left")).toBeTruthy();
   });
+
+  it("requires a correction note, lets staff cancel review, and applies a confirmed correction", async () => {
+    const item: StockItem = { variantId: "variant-2", productName: "Coffee beans", variantName: "1 kg", categoryName: "Coffee", quantityOnHand: 5, isActive: true };
+    const history: InventoryMovement[] = [];
+    const recordMovement = jest.fn(async (input: { variantId: string; userId: string; reason: "correction"; quantityChange: number; note: string }) => {
+      item.quantityOnHand += input.quantityChange;
+      const movement: InventoryMovement = {
+        id: "movement-correction", variantId: input.variantId, productName: item.productName, variantName: item.variantName,
+        userName: "Sam Staff", reason: input.reason, quantityChange: input.quantityChange, quantityAfter: item.quantityOnHand,
+        note: input.note, occurredAt: "2026-10-06T00:00:00.000Z",
+      };
+      history.unshift(movement);
+      return movement;
+    });
+    const service = {
+      async listStock() { return [{ ...item }]; },
+      async listMovements() { return [...history]; },
+      recordMovement,
+    } as unknown as InventoryService;
+    const user = { id: "staff-7", displayName: "Sam Staff", username: "sam", role: "owner", isActive: true, createdAt: "", updatedAt: "" } as User;
+    await render(<InventoryScreen service={service} user={user} onClose={jest.fn()} />);
+    await waitFor(() => expect(screen.getByText(/5 on hand/)).toBeTruthy());
+    await fireEvent.press(screen.getByRole("button", { name: "Correction" }));
+    expect(screen.getByLabelText("Stock quantity").props.keyboardType).toBe("numbers-and-punctuation");
+    await fireEvent.changeText(screen.getByLabelText("Stock quantity"), "-2");
+    await fireEvent.press(screen.getByRole("button", { name: "Save stock change" }));
+    expect(await screen.findByText("Add a note explaining this stock correction.")).toBeTruthy();
+    expect(screen.queryByTestId("inventory-correction-review")).toBeNull();
+
+    await fireEvent.changeText(screen.getByLabelText("Stock note"), "Cycle count");
+    await fireEvent.press(screen.getByRole("button", { name: "Save stock change" }));
+    expect(await screen.findByTestId("inventory-correction-review")).toBeTruthy();
+    expect(screen.getByText("5")).toBeTruthy();
+    expect(screen.getByText("-2")).toBeTruthy();
+    expect(screen.getByText("3")).toBeTruthy();
+    expect(screen.getByText("Cycle count")).toBeTruthy();
+    expect(recordMovement).not.toHaveBeenCalled();
+
+    await fireEvent.press(screen.getByRole("button", { name: "Cancel stock correction" }));
+    expect(screen.queryByTestId("inventory-correction-review")).toBeNull();
+    expect(recordMovement).not.toHaveBeenCalled();
+    expect(item.quantityOnHand).toBe(5);
+
+    await fireEvent.press(screen.getByRole("button", { name: "Save stock change" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Confirm correction" }));
+    await waitFor(() => expect(recordMovement).toHaveBeenCalledWith({
+      variantId: "variant-2", userId: user.id, reason: "correction", quantityChange: -2, note: "Cycle count",
+    }));
+    await waitFor(() => expect(screen.getByTestId("inventory-movement-movement-correction")).toBeTruthy());
+    expect(screen.getByText("3 left")).toBeTruthy();
+    expect(screen.getByText(/Correction · Sam Staff · Cycle count/)).toBeTruthy();
+  });
 });

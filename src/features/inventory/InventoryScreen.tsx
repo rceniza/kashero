@@ -5,7 +5,8 @@ import { PrimaryButton } from "../../components/PrimaryButton";
 import type { User } from "../auth/UserRepository";
 import { colors, radius, spacing } from "../../theme/tokens";
 import type { InventoryService } from "./InventoryService";
-import type { InventoryMovement, InventoryReason, StockItem } from "./types";
+import { calculateStockAfter, validateMovement, type InventoryMovement, type InventoryReason, type RecordMovementInput, type StockItem } from "./types";
+import { InventoryCorrectionReview } from "./InventoryCorrectionReview";
 
 type Props = { service: InventoryService; user: User; onClose: () => void; onStockChanged?: () => Promise<void> | void };
 const REASONS: { id: InventoryReason; label: string }[] = [
@@ -21,6 +22,13 @@ export function InventoryScreen({ service, user, onClose, onStockChanged }: Prop
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [correctionReview, setCorrectionReview] = useState<{
+    input: RecordMovementInput;
+    productName: string;
+    variantName: string;
+    quantityBefore: number;
+    quantityAfter: number;
+  } | null>(null);
 
   const refresh = useCallback(async () => {
     const [items, movements] = await Promise.all([service.listStock(), service.listMovements(40)]);
@@ -33,18 +41,57 @@ export function InventoryScreen({ service, user, onClose, onStockChanged }: Prop
   }, [refresh]);
 
   const selected = stock.find((item) => item.variantId === selectedId);
-  async function save() {
+  function movementInput(): RecordMovementInput | null {
     const parsed = Number(quantity);
-    if (!Number.isSafeInteger(parsed) || parsed === 0) { setError("Enter a non-zero whole quantity."); return; }
+    if (!Number.isSafeInteger(parsed) || parsed === 0) { setError("Enter a non-zero whole quantity."); return null; }
+    const input = {
+      variantId: selectedId,
+      userId: user.id,
+      reason,
+      quantityChange: reason === "correction" ? parsed : Math.abs(parsed),
+      note,
+    } satisfies RecordMovementInput;
+    const validationError = validateMovement(input);
+    if (validationError) { setError(validationError); return null; }
+    return input;
+  }
+
+  async function record(input: RecordMovementInput) {
     setSaving(true); setError("");
     try {
-      await service.recordMovement({
-        variantId: selectedId, userId: user.id, reason,
-        quantityChange: reason === "correction" ? parsed : Math.abs(parsed), note,
-      });
-      setQuantity(""); setNote(""); await refresh(); await onStockChanged?.();
+      await service.recordMovement(input);
+      setQuantity(""); setNote(""); setCorrectionReview(null);
+      await refresh(); await onStockChanged?.();
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not save stock movement."); }
     finally { setSaving(false); }
+  }
+
+  function save() {
+    if (saving) return;
+    setError("");
+    const input = movementInput();
+    if (!input) return;
+    if (reason === "correction" && selected) {
+      try {
+        const quantityAfter = calculateStockAfter(selected.quantityOnHand, input.quantityChange);
+        setCorrectionReview({
+          input,
+          productName: selected.productName,
+          variantName: selected.variantName,
+          quantityBefore: selected.quantityOnHand,
+          quantityAfter,
+        });
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : "Could not calculate the corrected stock.");
+      }
+      return;
+    }
+    void record(input);
+  }
+
+  function confirmCorrection() {
+    if (!correctionReview || saving) return;
+    void record(correctionReview.input);
   }
 
   return (
@@ -70,8 +117,8 @@ export function InventoryScreen({ service, user, onClose, onStockChanged }: Prop
           <View style={{ flexDirection: "row", gap: spacing.sm }}>
             {REASONS.map(({ id, label }) => <Pressable key={id} accessibilityRole="button" accessibilityState={{ selected: reason === id }} onPress={() => setReason(id)} style={{ flex: 1, alignItems: "center", padding: spacing.md, borderRadius: radius.sm, backgroundColor: reason === id ? colors.accentSoft : colors.background }}><Text style={{ color: reason === id ? colors.accent : colors.ink, fontWeight: "700", fontSize: 13 }}>{label}</Text></Pressable>)}
           </View>
-          <TextInput accessibilityLabel="Stock quantity" value={quantity} onChangeText={setQuantity} keyboardType="number-pad" placeholder={reason === "correction" ? "Quantity change, e.g. -2" : "Quantity to add"} style={inputStyle} />
-          <TextInput accessibilityLabel="Stock note" value={note} onChangeText={setNote} placeholder="Note (optional)" maxLength={240} style={inputStyle} />
+          <TextInput accessibilityLabel="Stock quantity" value={quantity} onChangeText={setQuantity} keyboardType={reason === "correction" ? "numbers-and-punctuation" : "number-pad"} placeholder={reason === "correction" ? "Quantity change, e.g. -2" : "Quantity to add"} style={inputStyle} />
+          <TextInput accessibilityLabel="Stock note" value={note} onChangeText={setNote} placeholder={reason === "correction" ? "Reason for correction (required)" : "Note (optional)"} maxLength={240} style={inputStyle} />
           {!!error && <Text accessibilityRole="alert" style={{ color: "#B42318" }}>{error}</Text>}
           <PrimaryButton label={saving ? "Saving…" : "Save stock change"} disabled={saving || !selected} onPress={save} />
         </View>
@@ -84,6 +131,20 @@ export function InventoryScreen({ service, user, onClose, onStockChanged }: Prop
           {history.length === 0 && <Text style={{ color: colors.muted }}>Stock changes will appear here with the staff member who recorded them.</Text>}
         </View>
       </ScrollView>
+      {correctionReview && (
+        <InventoryCorrectionReview
+          visible
+          productName={correctionReview.productName}
+          variantName={correctionReview.variantName}
+          quantityBefore={correctionReview.quantityBefore}
+          quantityChange={correctionReview.input.quantityChange}
+          quantityAfter={correctionReview.quantityAfter}
+          note={correctionReview.input.note ?? ""}
+          saving={saving}
+          onCancel={() => { if (!saving) setCorrectionReview(null); }}
+          onConfirm={confirmCorrection}
+        />
+      )}
     </View>
   );
 }

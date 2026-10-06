@@ -37,6 +37,7 @@ export function validateMovement(input: RecordMovementInput): string | null {
   if (!Number.isSafeInteger(input.quantityChange) || input.quantityChange === 0) return "Quantity must be a non-zero whole number.";
   if ((input.reason === "restock" || input.reason === "return") && input.quantityChange < 0) return "Received stock quantity must be positive.";
   if (input.reason === "sale" && input.quantityChange > 0) return "Sale quantity must be negative.";
+  if (input.reason === "correction" && !input.note?.trim()) return "Add a note explaining this stock correction.";
   if ((input.note?.trim().length ?? 0) > 240) return "Note must be 240 characters or fewer.";
   return null;
 }

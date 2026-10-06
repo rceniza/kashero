@@ -41,6 +41,11 @@ describe("inventory rules", () => {
     expect(() => calculateStockAfter(2, 0.5)).toThrow("whole number");
     expect(validateMovement({ variantId: "v", userId: "u", reason: "restock", quantityChange: -1 })).toContain("positive");
     expect(validateMovement({ variantId: "v", userId: "u", reason: "sale", quantityChange: 1 })).toContain("negative");
+    expect(validateMovement({ variantId: "v", userId: "u", reason: "correction", quantityChange: -1 })).toContain("note");
+    expect(validateMovement({ variantId: "v", userId: "u", reason: "correction", quantityChange: -1, note: "Cycle count" })).toBeNull();
+    expect(validateMovement({ variantId: "v", userId: "u", reason: "restock", quantityChange: 1 })).toBeNull();
+    expect(validateMovement({ variantId: "v", userId: "u", reason: "return", quantityChange: 1 })).toBeNull();
+    expect(validateMovement({ variantId: "v", userId: "u", reason: "sale", quantityChange: -1 })).toBeNull();
   });
 
   it("records receipts and corrections atomically with actor and history, and rejects below-zero changes", async () => {
@@ -52,9 +57,9 @@ describe("inventory rules", () => {
 
     const receipt = await service.recordMovement({ variantId: variant.id, userId: "user-1", reason: "restock", quantityChange: 10, note: "Opening stock" });
     expect(receipt).toMatchObject({ userName: "Casey Cashier", quantityChange: 10, quantityAfter: 10, note: "Opening stock" });
-    const correction = await service.recordMovement({ variantId: variant.id, userId: "user-1", reason: "correction", quantityChange: -2 });
+    const correction = await service.recordMovement({ variantId: variant.id, userId: "user-1", reason: "correction", quantityChange: -2, note: "Counted stock" });
     expect(correction.quantityAfter).toBe(8);
-    await expect(service.recordMovement({ variantId: variant.id, userId: "user-1", reason: "correction", quantityChange: -9 })).rejects.toThrow("below zero");
+    await expect(service.recordMovement({ variantId: variant.id, userId: "user-1", reason: "correction", quantityChange: -9, note: "Counted stock" })).rejects.toThrow("below zero");
     expect((await service.listStock())[0].quantityOnHand).toBe(8);
     expect(await service.listMovements()).toHaveLength(2);
     expect(database.prepare("SELECT COUNT(*) AS count FROM inventory_movements").get()).toMatchObject({ count: 2 });
