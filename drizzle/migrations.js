@@ -8,6 +8,7 @@ import m0003 from './0003_tearful_doomsday.sql';
 import m0004 from './0004_watery_blizzard.sql';
 import m0005 from './0005_unknown_dakota_north.sql';
 import m0006 from './0006_talented_dexter_bennett.sql';
+import m0007 from './0007_short_giant_man.sql';
 
   export default {
     journal,
@@ -18,7 +19,8 @@ m0002,
 m0003,
 m0004,
 m0005,
-m0006
+m0006,
+m0007
     }
   }
   

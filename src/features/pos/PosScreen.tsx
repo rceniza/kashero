@@ -36,6 +36,9 @@ import { ReceiptPrintService } from "../receipts/ReceiptPrintService";
 import { UnconfiguredReceiptPrinter } from "../../data/receipts/UnconfiguredReceiptPrinter";
 import { DiagnosticsScreen } from "../diagnostics/DiagnosticsScreen";
 import type { DiagnosticsService } from "../diagnostics/DiagnosticsService";
+import { OwnerActionsSheet } from "../settings/OwnerActionsSheet";
+import { TaxSettingsScreen } from "../settings/TaxSettingsScreen";
+import type { TaxSettingsService } from "../settings/TaxSettingsService";
 import {
   catalog,
   categories,
@@ -56,6 +59,7 @@ type Props = {
   paymentService?: PaymentService;
   receiptPrintService?: ReceiptPrintService;
   diagnosticsService?: DiagnosticsService;
+  taxSettingsService?: TaxSettingsService;
 };
 
 export function PosScreen({
@@ -71,6 +75,7 @@ export function PosScreen({
   paymentService,
   receiptPrintService,
   diagnosticsService,
+  taxSettingsService,
 }: Props) {
   const printing = receiptPrintService ?? defaultReceiptPrintService;
   const dimensions = useWindowDimensions();
@@ -99,6 +104,8 @@ export function PosScreen({
   const [paymentSaving, setPaymentSaving] = useState(false);
   const [paymentError, setPaymentError] = useState("");
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
+  const [ownerActionsOpen, setOwnerActionsOpen] = useState(false);
+  const [taxSettingsOpen, setTaxSettingsOpen] = useState(false);
   const items = catalogItems ?? catalog;
   const visibleCategories = categoryNames ?? categories.slice(1);
   const selectedCategory = category === "All items" || visibleCategories.includes(category)
@@ -248,6 +255,9 @@ export function PosScreen({
   if (diagnosticsOpen && diagnosticsService) {
     return <DiagnosticsScreen service={diagnosticsService} onClose={() => setDiagnosticsOpen(false)} />;
   }
+  if (taxSettingsOpen && taxSettingsService && user) {
+    return <TaxSettingsScreen service={taxSettingsService} user={user} onClose={() => setTaxSettingsOpen(false)} />;
+  }
 
   return (
     <View
@@ -277,11 +287,24 @@ export function PosScreen({
         {diagnosticsService && <Pressable accessibilityRole="button" accessibilityLabel="Diagnostics" onPress={() => setDiagnosticsOpen(true)} style={shellStyles.diagnosticsButton}><Text style={shellStyles.diagnosticsButtonText}>{tablet ? "Diagnostics" : "Logs"}</Text></Pressable>}
         <View style={shellStyles.staff}>
           <View style={shellStyles.onlineDot} />
-          <Pressable accessibilityRole="button" accessibilityLabel="Sign out" onPress={onLogout}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={user?.role === "owner" && taxSettingsService ? "Account options" : "Sign out"}
+            onPress={() => user?.role === "owner" && taxSettingsService ? setOwnerActionsOpen(true) : onLogout?.()}
+          >
             <Text numberOfLines={1} style={[shellStyles.staffText, !tablet && { maxWidth: 76 }]}>{user ? `${user.displayName}${tablet ? ` · ${user.role}` : ""}` : "Alex · Cashier"}</Text>
           </Pressable>
         </View>
       </View>
+
+      {user?.role === "owner" && taxSettingsService && (
+        <OwnerActionsSheet
+          visible={ownerActionsOpen}
+          onClose={() => setOwnerActionsOpen(false)}
+          onOpenTaxSettings={() => { setOwnerActionsOpen(false); setTaxSettingsOpen(true); }}
+          onSignOut={() => { setOwnerActionsOpen(false); onLogout?.(); }}
+        />
+      )}
 
       <View
         style={[shellStyles.workspace, tablet && shellStyles.tabletWorkspace]}

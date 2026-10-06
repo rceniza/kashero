@@ -27,6 +27,17 @@ describe("receipt formatting", () => {
     expect(maskApprovalCode("71")).toBe("**");
   });
 
+  it("labels whether the snapshotted tax was included or added to the listed price", () => {
+    const text = formatReceipt(receipt, { method: "cash" }).join("\n");
+    expect(text).toContain("Tax added (8%)");
+
+    const inclusive = {
+      ...receipt,
+      lines: receipt.lines.map((line) => ({ ...line, taxMode: "inclusive" as const, taxRateBasisPoints: 825 })),
+    };
+    expect(formatReceipt(inclusive, { method: "cash" }).join("\n")).toContain("Tax included (8.25%)");
+  });
+
   it("supports multiple widths and rejects unsupported widths", () => {
     expect(formatReceipt(receipt, { method: "metrobank_terminal" }, 42).every((line) => line.length <= 42)).toBe(true);
     expect(() => formatReceipt(receipt, { method: "cash" }, 15)).toThrow("between 16 and 80");

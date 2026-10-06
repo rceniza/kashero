@@ -50,6 +50,13 @@
       "when": 1791207683652,
       "tag": "0006_talented_dexter_bennett",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1791244611022,
+      "tag": "0007_short_giant_man",
+      "breakpoints": true
     }
   ]
 }

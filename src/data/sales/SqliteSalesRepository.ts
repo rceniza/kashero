@@ -1,6 +1,6 @@
 import { createUuid, utcNowIso } from "../../shared/ids";
 import { calculateStockAfter } from "../../features/inventory/types";
-import { calculateSaleTotals, type SaleLineInput, type SaleReceipt, type SaleTaxPolicy } from "../../features/sales/types";
+import { calculateSaleTotals, type SaleLineInput, type SaleReceipt, type SaleTaxMode } from "../../features/sales/types";
 import type { SalesRepository } from "../../features/sales/SalesRepository";
 
 interface SqlExecutor {
@@ -22,7 +22,7 @@ type ProductRow = {
 };
 
 export class SqliteSalesRepository implements SalesRepository {
-  constructor(private readonly database: SqlDatabase, private readonly taxPolicy: SaleTaxPolicy | null = null) {}
+  constructor(private readonly database: SqlDatabase) {}
 
   async createPendingSale(userId: string, lines: SaleLineInput[]): Promise<SaleReceipt> {
     const saleId = createUuid();
@@ -31,6 +31,10 @@ export class SqliteSalesRepository implements SalesRepository {
     let receipt: SaleReceipt | null = null;
 
     await this.database.withExclusiveTransactionAsync(async (transaction) => {
+      const taxSettings = await transaction.getFirstAsync<{
+        tax_rate_basis_points: number | null;
+        tax_mode: SaleTaxMode;
+      }>("SELECT tax_rate_basis_points, tax_mode FROM store_settings WHERE id = 'store'");
       const pendingSale = await transaction.getFirstAsync<{ id: string }>(
         "SELECT id FROM sales WHERE user_id = ? AND status = 'pending_payment' LIMIT 1", userId,
       );
@@ -61,7 +65,11 @@ export class SqliteSalesRepository implements SalesRepository {
           discountInCentavos: line.discountInCentavos ?? 0,
         };
       });
-      const totals = calculateSaleTotals(pricedLines, this.taxPolicy?.rateBasisPoints ?? null, this.taxPolicy?.mode ?? "exclusive");
+      const totals = calculateSaleTotals(
+        pricedLines,
+        taxSettings?.tax_rate_basis_points ?? null,
+        taxSettings?.tax_mode ?? "exclusive",
+      );
       await transaction.runAsync(
         `INSERT INTO sales (id, receipt_number, user_id, status, subtotal_in_centavos,
           discount_in_centavos, tax_in_centavos, total_in_centavos, created_at, updated_at)

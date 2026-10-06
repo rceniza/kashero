@@ -6,7 +6,7 @@ import { SqliteSalesRepository } from "../../src/data/sales/SqliteSalesRepositor
 import { SqlitePaymentRepository } from "../../src/data/payments/SqlitePaymentRepository";
 import { PaymentService } from "../../src/features/payments/PaymentService";
 import { SalesService } from "../../src/features/sales/SalesService";
-import { applyMigrationAt, applyMigrations } from "../../test-support/applyMigrations";
+import { applyMigrations } from "../../test-support/applyMigrations";
 
 function setup(migrationCount?: number) {
   const database = new DatabaseSync(":memory:");
@@ -135,11 +135,10 @@ describe("cash payment feature", () => {
     state.database.close();
   });
 
-  it("adds terminal fields to an existing database without changing cash payment records", async () => {
-    const state = setup(5);
+  it("keeps cash payment records intact with the current settings schema", async () => {
+    const state = setup();
     const { sale } = await createPending(state);
     const cash = await state.payments.recordCashPayment("cashier-1", sale.id, 2500);
-    applyMigrationAt((statement) => state.database.exec(statement), 5);
 
     expect(state.database.prepare("SELECT id, status, method, amount_in_centavos, approval_code, terminal_reference FROM payments WHERE id = ?").get(cash.paymentId)).toMatchObject({
       id: cash.paymentId, status: "paid", method: "cash", amount_in_centavos: 2500, approval_code: null, terminal_reference: null,

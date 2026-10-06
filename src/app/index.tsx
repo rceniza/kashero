@@ -17,6 +17,8 @@ import { SqlitePaymentRepository } from "../data/payments/SqlitePaymentRepositor
 import { PaymentService } from "../features/payments/PaymentService";
 import { DiagnosticsService } from "../features/diagnostics/DiagnosticsService";
 import { SqliteDiagnosticRepository } from "../data/diagnostics/SqliteDiagnosticRepository";
+import { SqliteStoreSettingsRepository } from "../data/settings/SqliteStoreSettingsRepository";
+import { TaxSettingsService } from "../features/settings/TaxSettingsService";
 
 export default function IndexScreen() {
   const { loading, needsSetup, user, logout } = useAuth();
@@ -39,6 +41,10 @@ export default function IndexScreen() {
   );
   const diagnosticsService = useMemo(
     () => new DiagnosticsService(new SqliteDiagnosticRepository(database)),
+    [database],
+  );
+  const taxSettingsService = useMemo(
+    () => new TaxSettingsService(new SqliteStoreSettingsRepository(database)),
     [database],
   );
   const [catalogItems, setCatalogItems] = useState<CatalogItem[]>([]);
@@ -86,5 +92,5 @@ export default function IndexScreen() {
   if (!user) return <AuthScreen key={needsSetup ? "setup" : "login"} />;
   if (!catalogReady) return <View style={{ flex: 1, justifyContent: "center", backgroundColor: colors.background }}><ActivityIndicator color={colors.accent} /></View>;
   if (catalogError) return <View style={{ flex: 1, justifyContent: "center", backgroundColor: colors.background, padding: 24 }}><Text style={{ color: colors.ink }}>Could not load the catalog. Please restart Kashero.</Text></View>;
-  return <PosScreen user={user} onLogout={logout} catalogItems={catalogItems} categoryNames={categoryNames} catalogService={catalogService} inventoryService={inventoryService} salesService={salesService} paymentService={paymentService} diagnosticsService={diagnosticsService} onCatalogChanged={refreshCatalog} />;
+  return <PosScreen user={user} onLogout={logout} catalogItems={catalogItems} categoryNames={categoryNames} catalogService={catalogService} inventoryService={inventoryService} salesService={salesService} paymentService={paymentService} diagnosticsService={diagnosticsService} taxSettingsService={taxSettingsService} onCatalogChanged={refreshCatalog} />;
 }

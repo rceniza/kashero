@@ -37,7 +37,7 @@ export function formatReceipt(
   lines.push(divider);
   lines.push(...alignColumns("Subtotal", formatPeso(receipt.subtotalInCentavos), width));
   if (receipt.discountInCentavos > 0) lines.push(...alignColumns("Discount", `-${formatPeso(receipt.discountInCentavos)}`, width));
-  if (receipt.taxInCentavos > 0) lines.push(...alignColumns("Tax", formatPeso(receipt.taxInCentavos), width));
+  if (receipt.taxInCentavos > 0) lines.push(...alignColumns(getTaxLabel(receipt), formatPeso(receipt.taxInCentavos), width));
   lines.push(...alignColumns("TOTAL", formatPeso(receipt.totalInCentavos), width));
   lines.push(divider);
   lines.push(...wrapLine(`Payment: ${paymentMethodLabel(payment.method)}`, width));
@@ -51,6 +51,16 @@ export function formatReceipt(
 
   lines.push(divider, center("Thank you!", width));
   return lines;
+}
+
+export function getTaxLabel(receipt: SaleReceipt): string {
+  const taxLines = receipt.lines.filter((line) => line.taxRateBasisPoints !== null && line.taxMode !== null);
+  const policyKeys = new Set(taxLines.map((line) => `${line.taxRateBasisPoints}:${line.taxMode}`));
+  if (policyKeys.size !== 1) return "Tax";
+  const [rateText, mode] = [...policyKeys][0].split(":");
+  const rate = Number(rateText) / 100;
+  const formattedRate = Number.isInteger(rate) ? String(rate) : rate.toFixed(2).replace(/0$/, "");
+  return mode === "inclusive" ? `Tax included (${formattedRate}%)` : `Tax added (${formattedRate}%)`;
 }
 
 export function maskApprovalCode(value: string): string {

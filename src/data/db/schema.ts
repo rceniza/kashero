@@ -113,6 +113,17 @@ export const inventoryMovements = sqliteTable("inventory_movements", {
   check("inventory_movements_direction_check", sql`(${table.reason} in ('restock', 'return') and ${table.quantityChange} > 0) or (${table.reason} = 'sale' and ${table.quantityChange} < 0) or ${table.reason} = 'correction'`),
 ]);
 
+export const storeSettings = sqliteTable("store_settings", {
+  id: text("id").primaryKey().notNull(),
+  taxRateBasisPoints: integer("tax_rate_basis_points"),
+  taxMode: text("tax_mode", { enum: ["exclusive", "inclusive"] }).notNull().default("exclusive"),
+  updatedAt: text("updated_at").notNull().default(utcSqlDefault),
+}, (table) => [
+  check("store_settings_singleton_id", sql`${table.id} = 'store'`),
+  check("store_settings_tax_rate_check", sql`${table.taxRateBasisPoints} is null or (typeof(${table.taxRateBasisPoints}) = 'integer' and ${table.taxRateBasisPoints} between 0 and 10000)`),
+  check("store_settings_tax_mode_check", sql`${table.taxMode} in ('exclusive', 'inclusive')`),
+]);
+
 export const sales = sqliteTable("sales", {
   id: text("id").primaryKey().notNull(),
   receiptNumber: text("receipt_number").notNull(),

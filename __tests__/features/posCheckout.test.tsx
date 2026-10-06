@@ -109,8 +109,15 @@ describe("POS checkout feature", () => {
   });
 
   it("previews and reprints the completed receipt on a small phone layout", async () => {
-    const paidResult = { paymentId: "payment-1", saleId: receipt.id, status: "paid" as const, method: "cash" as const, amountInCentavos: receipt.totalInCentavos, tenderedInCentavos: 300000, changeInCentavos: 49900, failureReason: null };
-    const getLatestPendingSale = jest.fn(async () => receipt);
+    const taxedReceipt: SaleReceipt = {
+      ...receipt,
+      subtotalInCentavos: 250100,
+      taxInCentavos: 20633,
+      totalInCentavos: 270733,
+      lines: receipt.lines.map((line) => ({ ...line, taxRateBasisPoints: 825, taxMode: "exclusive", taxInCentavos: 20633, lineTotalInCentavos: 270733 })),
+    };
+    const paidResult = { paymentId: "payment-1", saleId: taxedReceipt.id, status: "paid" as const, method: "cash" as const, amountInCentavos: taxedReceipt.totalInCentavos, tenderedInCentavos: 300000, changeInCentavos: 29267, failureReason: null };
+    const getLatestPendingSale = jest.fn(async () => taxedReceipt);
     const recordCashPayment = jest.fn(async () => paidResult);
     const paymentService = { getLatestPendingSale, recordCashPayment } as unknown as PaymentService;
     const print = jest.fn(async (_lines: string[]) => ({ status: "unavailable" as const, message: "Printer is not configured yet." }));
@@ -124,6 +131,7 @@ describe("POS checkout feature", () => {
 
     expect(screen.getByText("Receipt preview")).toBeTruthy();
     expect(screen.getByLabelText("Receipt contents").props.children).toContain("KASHERO");
+    expect(screen.getByLabelText("Receipt contents").props.children).toContain("Tax added (8.25%)");
     await fireEvent.press(screen.getByRole("button", { name: "Reprint receipt" }));
     expect(await screen.findByText("Printer is not configured yet.")).toBeTruthy();
     expect(print).toHaveBeenCalledTimes(1);
