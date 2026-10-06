@@ -1,5 +1,4 @@
-import { pbkdf2Async } from "@noble/hashes/pbkdf2.js";
-import { sha256 } from "@noble/hashes/sha2.js";
+import { pbkdf2 } from "react-native-quick-crypto";
 import { bytesToHex, hexToBytes, utf8ToBytes } from "@noble/hashes/utils.js";
 import { getRandomBytesAsync } from "expo-crypto";
 
@@ -18,13 +17,33 @@ export async function encodePasswordHash(
   saltHex: string,
   iterations: number,
 ): Promise<string> {
-  const derived = await pbkdf2Async(
-    sha256,
-    utf8ToBytes(password),
-    hexToBytes(saltHex),
-    { c: iterations, dkLen: HASH_LENGTH },
-  );
+  const derived = await derivePasswordKey(password, saltHex, iterations);
   return `${FORMAT}$${iterations}$${saltHex}$${bytesToHex(derived)}`;
+}
+
+function derivePasswordKey(
+  password: string,
+  saltHex: string,
+  iterations: number,
+): Promise<Uint8Array> {
+  return new Promise((resolve, reject) => {
+    pbkdf2(
+      utf8ToBytes(password),
+      hexToBytes(saltHex),
+      iterations,
+      HASH_LENGTH,
+      "sha256",
+      (error, key) => {
+        if (error) {
+          reject(error);
+        } else if (key) {
+          resolve(key);
+        } else {
+          reject(new Error("Password derivation returned no key."));
+        }
+      },
+    );
+  });
 }
 
 export async function verifyPassword(

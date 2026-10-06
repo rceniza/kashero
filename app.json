@@ -38,7 +38,8 @@
             "minSdkVersion": 30
           }
         }
-      ]
+      ],
+      "react-native-quick-crypto"
     ]
   }
 }
