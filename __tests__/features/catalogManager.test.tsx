@@ -37,16 +37,25 @@ describe("catalog manager screen", () => {
     const { database, service } = createService();
     await render(<CatalogManagerScreen service={service} onClose={jest.fn()} />);
 
+    expect(screen.getByText("Create a category in the Categories tab first.")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Product category" }).props.accessibilityState).toMatchObject({ disabled: true });
+
     await fireEvent.press(screen.getByRole("button", { name: "Categories" }));
+    await fireEvent.changeText(screen.getByLabelText("Category name"), "Coffee");
+    await fireEvent.press(screen.getByRole("button", { name: "Add category" }));
+    await waitFor(() => expect(screen.getByText("Coffee")).toBeTruthy());
+
     await fireEvent.changeText(screen.getByLabelText("Category name"), "Grocery");
     await fireEvent.press(screen.getByRole("button", { name: "Add category" }));
     await waitFor(() => expect(screen.getByText("Grocery")).toBeTruthy());
 
     await fireEvent.press(screen.getByRole("button", { name: "Products" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Product category" }));
     await fireEvent.press(screen.getByRole("button", { name: "Grocery" }));
+    expect(screen.getByRole("button", { name: "Product category" }).props.accessibilityValue).toEqual({ text: "Grocery" });
     await fireEvent.changeText(screen.getByLabelText("Product name"), "Brown rice");
     await fireEvent.changeText(screen.getByLabelText("Description (optional)"), "5 kg bag");
-    await fireEvent.changeText(screen.getByLabelText("Price (PHP)"), "1250.50");
+    await fireEvent.changeText(screen.getByTestId("product-price-input"), "1250.50");
     await fireEvent.press(screen.getByRole("button", { name: "Add product" }));
 
     await waitFor(async () => {

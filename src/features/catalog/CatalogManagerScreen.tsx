@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-
 
 import { PrimaryButton } from "../../components/PrimaryButton";
 import { colors, radius, spacing, typeScale } from "../../theme/tokens";
+import { CategorySelect } from "./CategorySelect";
 import type { ProductCatalogService } from "./ProductCatalogService";
 import type { CatalogProduct, ProductCategory, ProductVariant } from "./types";
 
@@ -166,7 +167,7 @@ export function CatalogManagerScreen({ service, onClose, onCatalogChanged }: Pro
         {tab === "categories" ? (
           <>
             <Text style={styles.sectionTitle}>{editingCategoryId ? "Edit category" : "New category"}</Text>
-            <Field label="Category name" value={categoryName} onChangeText={setCategoryName} />
+            <Field testID="category-name-input" label="Category name" value={categoryName} onChangeText={setCategoryName} />
             <Field label="Display order" value={categoryOrder} onChangeText={setCategoryOrder} keyboardType="number-pad" />
             <PrimaryButton label={busy ? "Saving…" : editingCategoryId ? "Save category" : "Add category"} onPress={saveCategory} disabled={busy} />
             {editingCategoryId ? <SecondaryButton label="Cancel edit" onPress={() => { setEditingCategoryId(""); setCategoryName(""); setCategoryOrder("0"); }} /> : null}
@@ -184,17 +185,16 @@ export function CatalogManagerScreen({ service, onClose, onCatalogChanged }: Pro
         ) : (
           <>
             <Text style={styles.sectionTitle}>{selectedProduct ? "Edit product" : "New product"}</Text>
-            <Text style={styles.label}>Category</Text>
-            <View style={styles.choiceList}>
-              {categories.filter((item) => item.isActive).map((category) => (
-                <Tab key={category.id} label={category.name} selected={categoryId === category.id} onPress={() => setCategoryId(category.id)} />
-              ))}
-            </View>
-            <Field label="Product name" value={productName} onChangeText={setProductName} />
+            <CategorySelect
+              categories={categories.filter((item) => item.isActive)}
+              selectedCategoryId={categoryId}
+              onSelect={setCategoryId}
+            />
+            <Field testID="product-name-input" label="Product name" value={productName} onChangeText={setProductName} />
             <Field label="Description (optional)" value={description} onChangeText={setDescription} />
             <Text style={styles.sectionTitle}>Sellable variant</Text>
             <Field label="Variant name" value={variantName} onChangeText={setVariantName} />
-            <Field label="Price (PHP)" value={price} onChangeText={setPrice} keyboardType="decimal-pad" />
+            <Field testID="product-price-input" label="Price (PHP)" value={price} onChangeText={setPrice} keyboardType="decimal-pad" />
             <Field label="SKU (optional)" value={sku} onChangeText={setSku} />
             <Field label="Barcode (optional)" value={barcode} onChangeText={setBarcode} keyboardType="number-pad" />
             <PrimaryButton label={busy ? "Saving…" : selectedProduct ? "Save product and variant" : "Add product"} onPress={saveProduct} disabled={busy} />
@@ -241,8 +241,8 @@ function parseCentavos(value: string): number {
   return Math.round(amount * 100);
 }
 
-function Field({ label, ...props }: { label: string; value: string; onChangeText(value: string): void; keyboardType?: "default" | "number-pad" | "decimal-pad" }) {
-  return <View style={styles.field}><Text style={styles.label}>{label}</Text><TextInput accessibilityLabel={label} value={props.value} onChangeText={props.onChangeText} keyboardType={props.keyboardType} style={styles.input} /></View>;
+function Field({ label, testID, ...props }: { label: string; testID?: string; value: string; onChangeText(value: string): void; keyboardType?: "default" | "number-pad" | "decimal-pad" }) {
+  return <View style={styles.field}><Text style={styles.label}>{label}</Text><TextInput testID={testID} accessibilityLabel={label} value={props.value} onChangeText={props.onChangeText} keyboardType={props.keyboardType} style={styles.input} /></View>;
 }
 
 function Tab({ label, selected, onPress }: { label: string; selected: boolean; onPress(): void }) {
@@ -274,7 +274,6 @@ const styles = StyleSheet.create({
   label: { color: colors.ink, fontWeight: "700", fontSize: typeScale.caption, marginBottom: spacing.xs },
   field: { marginBottom: spacing.md },
   input: { minHeight: 46, backgroundColor: colors.surface, borderColor: colors.line, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: spacing.md, color: colors.ink },
-  choiceList: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, marginBottom: spacing.md },
   listRow: { minHeight: 58, flexDirection: "row", alignItems: "center", gap: spacing.md, paddingHorizontal: spacing.md, marginBottom: spacing.sm, borderRadius: radius.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line },
   rowMain: { flex: 1, paddingVertical: spacing.sm },
   rowTitle: { color: colors.ink, fontWeight: "700" },
