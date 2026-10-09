@@ -4,6 +4,9 @@ import { StyleSheet } from "react-native";
 import { PosScreen } from "../../src/features/pos/PosScreen";
 import type { CatalogItem } from "../../src/features/catalog/types";
 import type { DiagnosticsService } from "../../src/features/diagnostics/DiagnosticsService";
+import type { ProductCatalogService } from "../../src/features/catalog/ProductCatalogService";
+import type { InventoryService } from "../../src/features/inventory/InventoryService";
+import type { User } from "../../src/features/auth/UserRepository";
 
 describe("responsive POS shell", () => {
   it("exposes product and order controls with accessible labels and 44pt touch targets", async () => {
@@ -83,5 +86,35 @@ describe("responsive POS shell", () => {
     expect(screen.getByText("No diagnostics have been recorded.")).toBeTruthy();
     await fireEvent.press(screen.getByRole("button", { name: "Close diagnostics" }));
     expect(screen.getByTestId("pos-shell-phone")).toBeTruthy();
+  });
+
+  it("shows clear, touch-sized management buttons in phone and tablet headers", async () => {
+    const user: User = {
+      id: "owner-1", displayName: "Small Store", username: "owner", role: "owner",
+      isActive: true, createdAt: "", updatedAt: "",
+    };
+    const catalogService = {
+      listCategories: jest.fn(async () => []),
+      listProducts: jest.fn(async () => []),
+    } as unknown as ProductCatalogService;
+    const inventoryService = {
+      listStock: jest.fn(async () => []),
+      listMovements: jest.fn(async () => []),
+    } as unknown as InventoryService;
+    const props = { user, catalogService, inventoryService, viewportWidth: 320 };
+
+    await render(<PosScreen {...props} />);
+    const phoneNavigation = screen.getByTestId("pos-navigation-phone");
+    expect(StyleSheet.flatten(phoneNavigation.props.style)).toMatchObject({ width: "100%" });
+    const catalogButton = screen.getByRole("button", { name: "Manage catalog" });
+    expect(StyleSheet.flatten(catalogButton.props.style)).toMatchObject({ minHeight: 44, borderWidth: 1 });
+    await fireEvent.press(catalogButton);
+    expect(screen.getByTestId("catalog-manager")).toBeTruthy();
+    await fireEvent.press(screen.getByRole("button", { name: "Close catalog manager" }));
+
+    await render(<PosScreen {...props} viewportWidth={1024} />);
+    expect(screen.getByTestId("pos-navigation-tablet")).toBeTruthy();
+    const inventoryButton = screen.getByRole("button", { name: "Manage inventory" });
+    expect(StyleSheet.flatten(inventoryButton.props.style)).toMatchObject({ minHeight: 44, borderWidth: 1 });
   });
 });

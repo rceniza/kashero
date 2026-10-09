@@ -81,6 +81,9 @@ export function PosScreen({
   const dimensions = useWindowDimensions();
   const width = viewportWidth ?? dimensions.width;
   const tablet = isTabletLayout(width);
+  const canManageStore = Boolean(
+    catalogService && inventoryService && user && (user.role === "owner" || user.role === "manager"),
+  );
   const columns = getProductColumns(width);
   const today = new Date()
     .toLocaleDateString("en-US", {
@@ -265,36 +268,42 @@ export function PosScreen({
       testID={`pos-shell-${tablet ? "tablet" : "phone"}`}
     >
       <View style={[shellStyles.header, !tablet && shellStyles.phoneHeader]}>
-        <View style={shellStyles.brandRow}>
-          <View style={shellStyles.brandMark}>
-            <Text style={shellStyles.brandLetter}>K</Text>
+        <View style={[shellStyles.headerMain, !tablet && shellStyles.phoneHeaderMain]}>
+          <View style={shellStyles.brandRow}>
+            <View style={shellStyles.brandMark}>
+              <Text style={shellStyles.brandLetter}>K</Text>
+            </View>
+            <View>
+              <Text style={shellStyles.brand}>kashero</Text>
+              {tablet && <Text style={shellStyles.store}>COUNTER 01 · MAIN STORE</Text>}
+            </View>
           </View>
-          <View>
-            <Text style={shellStyles.brand}>kashero</Text>
-            {tablet && <Text style={shellStyles.store}>COUNTER 01 · MAIN STORE</Text>}
+          {tablet && <PosNavigation
+            canManageStore={canManageStore}
+            showDiagnostics={!!diagnosticsService}
+            onOpenCatalog={() => setManageCatalog(true)}
+            onOpenInventory={() => setManageInventory(true)}
+            onOpenDiagnostics={() => setDiagnosticsOpen(true)}
+          />}
+          <View style={shellStyles.staff}>
+            <View style={shellStyles.onlineDot} />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={user?.role === "owner" && taxSettingsService ? "Account options" : "Sign out"}
+              onPress={() => user?.role === "owner" && taxSettingsService ? setOwnerActionsOpen(true) : onLogout?.()}
+            >
+              <Text numberOfLines={1} style={[shellStyles.staffText, !tablet && { maxWidth: 76 }]}>{user ? `${user.displayName}${tablet ? ` · ${user.role}` : ""}` : "Alex · Cashier"}</Text>
+            </Pressable>
           </View>
         </View>
-        {catalogService && inventoryService && user && (user.role === "owner" || user.role === "manager") && (
-          <>
-          <Pressable accessibilityRole="button" accessibilityLabel="Manage catalog" onPress={() => setManageCatalog(true)} style={shellStyles.headerAction}>
-            <Text style={shellStyles.staffText}>{tablet ? "Catalog" : "Items"}</Text>
-          </Pressable>
-          <Pressable accessibilityRole="button" accessibilityLabel="Manage inventory" onPress={() => setManageInventory(true)} style={shellStyles.headerAction}>
-            <Text style={shellStyles.staffText}>Stock</Text>
-          </Pressable>
-          </>
-        )}
-        {diagnosticsService && <Pressable accessibilityRole="button" accessibilityLabel="Diagnostics" onPress={() => setDiagnosticsOpen(true)} style={shellStyles.diagnosticsButton}><Text style={shellStyles.diagnosticsButtonText}>{tablet ? "Diagnostics" : "Logs"}</Text></Pressable>}
-        <View style={shellStyles.staff}>
-          <View style={shellStyles.onlineDot} />
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={user?.role === "owner" && taxSettingsService ? "Account options" : "Sign out"}
-            onPress={() => user?.role === "owner" && taxSettingsService ? setOwnerActionsOpen(true) : onLogout?.()}
-          >
-            <Text numberOfLines={1} style={[shellStyles.staffText, !tablet && { maxWidth: 76 }]}>{user ? `${user.displayName}${tablet ? ` · ${user.role}` : ""}` : "Alex · Cashier"}</Text>
-          </Pressable>
-        </View>
+        {!tablet && <PosNavigation
+          phone
+          canManageStore={canManageStore}
+          showDiagnostics={!!diagnosticsService}
+          onOpenCatalog={() => setManageCatalog(true)}
+          onOpenInventory={() => setManageInventory(true)}
+          onOpenDiagnostics={() => setDiagnosticsOpen(true)}
+        />}
       </View>
 
       {user?.role === "owner" && taxSettingsService && (
@@ -420,6 +429,39 @@ export function PosScreen({
         />
       )}
       {!!lastSale && <SaleConfirmation receipt={lastSale} receiptPrintService={printing} onDismiss={() => setLastSale(null)} onCashPay={recordCashPayment} onTerminalPay={recordTerminalPayment} onTerminalOutcome={recordTerminalOutcome} onCancel={cancelPendingSale} saving={paymentSaving} error={paymentError} result={paymentResult} />}
+    </View>
+  );
+}
+
+function PosNavigation({
+  phone = false,
+  canManageStore,
+  showDiagnostics,
+  onOpenCatalog,
+  onOpenInventory,
+  onOpenDiagnostics,
+}: {
+  phone?: boolean;
+  canManageStore: boolean;
+  showDiagnostics: boolean;
+  onOpenCatalog(): void;
+  onOpenInventory(): void;
+  onOpenDiagnostics(): void;
+}) {
+  if (!canManageStore && !showDiagnostics) return null;
+  return (
+    <View style={[shellStyles.headerActionGroup, phone && shellStyles.phoneHeaderActions]} testID={phone ? "pos-navigation-phone" : "pos-navigation-tablet"}>
+      {canManageStore && <>
+        <Pressable accessibilityRole="button" accessibilityLabel="Manage catalog" onPress={onOpenCatalog} style={[shellStyles.headerButton, phone && shellStyles.phoneHeaderButton]}>
+          <Text style={shellStyles.headerButtonText}>{phone ? "Items" : "Catalog"}</Text>
+        </Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Manage inventory" onPress={onOpenInventory} style={[shellStyles.headerButton, phone && shellStyles.phoneHeaderButton]}>
+          <Text style={shellStyles.headerButtonText}>Stock</Text>
+        </Pressable>
+      </>}
+      {showDiagnostics && <Pressable accessibilityRole="button" accessibilityLabel="Diagnostics" onPress={onOpenDiagnostics} style={[shellStyles.headerButton, phone && shellStyles.phoneHeaderButton]}>
+        <Text style={shellStyles.headerButtonText}>{phone ? "Logs" : "Diagnostics"}</Text>
+      </Pressable>}
     </View>
   );
 }
