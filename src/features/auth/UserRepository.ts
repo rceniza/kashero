@@ -22,5 +22,9 @@ export type NewUser = {
 export interface UserRepository {
   countUsers(): Promise<number>;
   create(user: NewUser): Promise<User>;
+  list(): Promise<User[]>;
+  findById(id: string): Promise<User | null>;
   findByUsername(username: string): Promise<UserCredential | null>;
+  updatePassword(id: string, passwordHash: string): Promise<void>;
+  setActive(id: string, isActive: boolean): Promise<void>;
 }

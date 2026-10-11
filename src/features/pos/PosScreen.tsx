@@ -40,6 +40,8 @@ import { OwnerActionsSheet } from "../settings/OwnerActionsSheet";
 import { TaxSettingsScreen } from "../settings/TaxSettingsScreen";
 import { SaleHistoryScreen } from "../sales/SaleHistoryScreen";
 import type { TaxSettingsService } from "../settings/TaxSettingsService";
+import { StaffManagementScreen } from "../auth/StaffManagementScreen";
+import type { StaffService } from "../auth/StaffService";
 import {
   catalog,
   categories,
@@ -61,6 +63,7 @@ type Props = {
   receiptPrintService?: ReceiptPrintService;
   diagnosticsService?: DiagnosticsService;
   taxSettingsService?: TaxSettingsService;
+  staffService?: StaffService;
 };
 
 export function PosScreen({
@@ -77,6 +80,7 @@ export function PosScreen({
   receiptPrintService,
   diagnosticsService,
   taxSettingsService,
+  staffService,
 }: Props) {
   const printing = receiptPrintService ?? defaultReceiptPrintService;
   const dimensions = useWindowDimensions();
@@ -111,6 +115,7 @@ export function PosScreen({
   const [receiptHistoryOpen, setReceiptHistoryOpen] = useState(false);
   const [ownerActionsOpen, setOwnerActionsOpen] = useState(false);
   const [taxSettingsOpen, setTaxSettingsOpen] = useState(false);
+  const [staffManagementOpen, setStaffManagementOpen] = useState(false);
   const items = catalogItems ?? catalog;
   const visibleCategories = categoryNames ?? categories.slice(1);
   const selectedCategory = category === "All items" || visibleCategories.includes(category)
@@ -266,6 +271,9 @@ export function PosScreen({
   if (taxSettingsOpen && taxSettingsService && user) {
     return <TaxSettingsScreen service={taxSettingsService} user={user} onClose={() => setTaxSettingsOpen(false)} />;
   }
+  if (staffManagementOpen && staffService && user) {
+    return <StaffManagementScreen service={staffService} user={user} diagnosticsService={diagnosticsService} onClose={() => setStaffManagementOpen(false)} />;
+  }
 
   return (
     <View
@@ -296,8 +304,8 @@ export function PosScreen({
             <View style={shellStyles.onlineDot} />
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={user?.role === "owner" && taxSettingsService ? "Account options" : "Sign out"}
-              onPress={() => user?.role === "owner" && taxSettingsService ? setOwnerActionsOpen(true) : onLogout?.()}
+              accessibilityLabel={user?.role === "owner" && (taxSettingsService || staffService) ? "Account options" : "Sign out"}
+              onPress={() => user?.role === "owner" && (taxSettingsService || staffService) ? setOwnerActionsOpen(true) : onLogout?.()}
             >
               <Text numberOfLines={1} style={[shellStyles.staffText, !tablet && { maxWidth: 76 }]}>{user ? `${user.displayName}${tablet ? ` · ${user.role}` : ""}` : "Alex · Cashier"}</Text>
             </Pressable>
@@ -315,11 +323,12 @@ export function PosScreen({
         />}
       </View>
 
-      {user?.role === "owner" && taxSettingsService && (
+      {user?.role === "owner" && (taxSettingsService || staffService) && (
         <OwnerActionsSheet
           visible={ownerActionsOpen}
           onClose={() => setOwnerActionsOpen(false)}
-          onOpenTaxSettings={() => { setOwnerActionsOpen(false); setTaxSettingsOpen(true); }}
+          onOpenTaxSettings={taxSettingsService ? () => { setOwnerActionsOpen(false); setTaxSettingsOpen(true); } : undefined}
+          onOpenStaff={staffService ? () => { setOwnerActionsOpen(false); setStaffManagementOpen(true); } : undefined}
           onSignOut={() => { setOwnerActionsOpen(false); onLogout?.(); }}
         />
       )}

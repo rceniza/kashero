@@ -14,6 +14,16 @@ class MemoryUsers implements UserRepository {
     this.rows.push(user);
     return user;
   }
+  async list() { return this.rows.map(({ passwordHash: _passwordHash, ...user }) => user); }
+  async findById(id: string) { const record = this.rows.find(({ id: userId }) => userId === id); if (!record) return null; const { passwordHash: _passwordHash, ...user } = record; return user; }
+  async updatePassword(id: string, passwordHash: string) {
+    const user = this.rows.find((record) => record.id === id);
+    if (user) user.passwordHash = passwordHash;
+  }
+  async setActive(id: string, isActive: boolean) {
+    const user = this.rows.find((record) => record.id === id);
+    if (user) user.isActive = isActive;
+  }
   async findByUsername(username: string) { return this.rows.find((user) => user.username === username) ?? null; }
 }
 

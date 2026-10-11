@@ -10,6 +10,7 @@ import { applyMigrations } from "../../test-support/applyMigrations";
 
 function openRepository(db: DatabaseSync) {
   return new SqliteUserRepository({
+    async getAllAsync<T>(query: string, ...params: unknown[]) { return db.prepare(query).all(...(params as SQLInputValue[])) as T[]; },
     async getFirstAsync<T>(query: string, ...params: unknown[]) {
       return (db.prepare(query).get(...(params as SQLInputValue[])) as T | undefined) ?? null;
     },

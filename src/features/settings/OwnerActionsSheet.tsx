@@ -3,9 +3,9 @@ import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { PrimaryButton } from "../../components/PrimaryButton";
 import { colors, minimumTouchTarget, radius, spacing, typeScale } from "../../theme/tokens";
 
-type Props = { visible: boolean; onClose(): void; onOpenTaxSettings(): void; onSignOut(): void };
+type Props = { visible: boolean; onClose(): void; onOpenTaxSettings?: () => void; onOpenStaff?: () => void; onSignOut(): void };
 
-export function OwnerActionsSheet({ visible, onClose, onOpenTaxSettings, onSignOut }: Props) {
+export function OwnerActionsSheet({ visible, onClose, onOpenTaxSettings, onOpenStaff, onSignOut }: Props) {
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.backdrop}>
@@ -14,7 +14,8 @@ export function OwnerActionsSheet({ visible, onClose, onOpenTaxSettings, onSignO
           <View style={styles.handle} />
           <Text style={styles.title}>Store options</Text>
           <Text style={styles.subtitle}>Signed in as the owner</Text>
-          <PrimaryButton label="Tax settings" accessibilityLabel="Open tax settings" onPress={onOpenTaxSettings} />
+          {onOpenStaff && <PrimaryButton label="Staff accounts" accessibilityLabel="Manage staff accounts" onPress={onOpenStaff} />}
+          {onOpenTaxSettings && <PrimaryButton label="Tax settings" accessibilityLabel="Open tax settings" onPress={onOpenTaxSettings} />}
           <Pressable accessibilityRole="button" accessibilityLabel="Sign out" onPress={onSignOut} style={styles.signOut}>
             <Text style={styles.signOutText}>Sign out</Text>
           </Pressable>

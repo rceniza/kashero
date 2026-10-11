@@ -15,8 +15,10 @@ Kashero is an actively developed application, not just a screen mockup. The curr
 - Cash payments with tendered amount and change calculation.
 - Manual recording of Maya or Metrobank terminal results, including approval code, optional terminal reference, declines, and cancellations.
 - Store tax settings and a diagnostics screen for recent application errors.
+- Owner-managed cashier accounts: create accounts with unique usernames, reset passwords, and deactivate or reactivate access. Cashier passwords are stored as salted PBKDF2 hashes.
+- Searchable sales and payment history so staff can review previous receipts and recorded terminal outcomes.
 
-Some surrounding workflows are still being built. There is not yet a complete sales-history screen, owner-managed staff-account flow, local backup and restore flow, or cloud sync. The supported roles are owner, manager, and cashier, but the final permission policy is still being settled.
+Kashero supports owner, manager, and cashier roles. Owners can manage staff and tax settings. Owners and managers can manage products and inventory. Cashiers can sign in, handle checkout, and review receipts. Staff account creation, password resets, and status changes are recorded in local diagnostics without recording passwords. The app does not yet offer manager account assignment or customizable permissions.
 
 Kashero does not connect to a bank terminal or printer yet. For a terminal payment, the customer pays on the bank's separate terminal and the cashier records the result in Kashero. Receipt preview is available, but Bluetooth printing is not configured because the printer model has not been confirmed. The app does not currently communicate with a server or upload store data.
 
@@ -26,7 +28,7 @@ Kashero does not connect to a bank terminal or printer yet. For a terminal payme
 2. Sign in, add product categories and products, and enter opening stock.
 3. Build an order from the catalog and review the total.
 4. Choose cash and enter the amount received, or choose the terminal used and record its approval code after the bank terminal approves the payment.
-5. Review the receipt on screen. Printing and later retrieval from a sales-history screen are still pending.
+5. Review the receipt on screen, then find it later in receipt history. Bluetooth printing is still pending confirmation of the exact printer model.
 
 Tax is off until the store configures a rate. Kashero does not select a tax rate on the store's behalf.
 
