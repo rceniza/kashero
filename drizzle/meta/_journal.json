@@ -57,6 +57,13 @@
       "when": 1791244611022,
       "tag": "0007_short_giant_man",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1791687461863,
+      "tag": "0008_huge_cassandra_nova",
+      "breakpoints": true
     }
   ]
 }

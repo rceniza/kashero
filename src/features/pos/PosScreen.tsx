@@ -38,8 +38,10 @@ import { DiagnosticsScreen } from "../diagnostics/DiagnosticsScreen";
 import type { DiagnosticsService } from "../diagnostics/DiagnosticsService";
 import { OwnerActionsSheet } from "../settings/OwnerActionsSheet";
 import { TaxSettingsScreen } from "../settings/TaxSettingsScreen";
+import { PrinterSettingsScreen } from "../settings/PrinterSettingsScreen";
 import { SaleHistoryScreen } from "../sales/SaleHistoryScreen";
 import type { TaxSettingsService } from "../settings/TaxSettingsService";
+import type { PrinterSettingsService } from "../settings/PrinterSettingsService";
 import { StaffManagementScreen } from "../auth/StaffManagementScreen";
 import type { StaffService } from "../auth/StaffService";
 import {
@@ -63,6 +65,7 @@ type Props = {
   receiptPrintService?: ReceiptPrintService;
   diagnosticsService?: DiagnosticsService;
   taxSettingsService?: TaxSettingsService;
+  printerSettingsService?: PrinterSettingsService;
   staffService?: StaffService;
 };
 
@@ -80,6 +83,7 @@ export function PosScreen({
   receiptPrintService,
   diagnosticsService,
   taxSettingsService,
+  printerSettingsService,
   staffService,
 }: Props) {
   const printing = receiptPrintService ?? defaultReceiptPrintService;
@@ -115,6 +119,7 @@ export function PosScreen({
   const [receiptHistoryOpen, setReceiptHistoryOpen] = useState(false);
   const [ownerActionsOpen, setOwnerActionsOpen] = useState(false);
   const [taxSettingsOpen, setTaxSettingsOpen] = useState(false);
+  const [printerSettingsOpen, setPrinterSettingsOpen] = useState(false);
   const [staffManagementOpen, setStaffManagementOpen] = useState(false);
   const items = catalogItems ?? catalog;
   const visibleCategories = categoryNames ?? categories.slice(1);
@@ -271,6 +276,9 @@ export function PosScreen({
   if (taxSettingsOpen && taxSettingsService && user) {
     return <TaxSettingsScreen service={taxSettingsService} user={user} onClose={() => setTaxSettingsOpen(false)} />;
   }
+  if (printerSettingsOpen && printerSettingsService && user) {
+    return <PrinterSettingsScreen service={printerSettingsService} user={user} onClose={() => setPrinterSettingsOpen(false)} />;
+  }
   if (staffManagementOpen && staffService && user) {
     return <StaffManagementScreen service={staffService} user={user} diagnosticsService={diagnosticsService} onClose={() => setStaffManagementOpen(false)} />;
   }
@@ -304,8 +312,8 @@ export function PosScreen({
             <View style={shellStyles.onlineDot} />
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={user?.role === "owner" && (taxSettingsService || staffService) ? "Account options" : "Sign out"}
-              onPress={() => user?.role === "owner" && (taxSettingsService || staffService) ? setOwnerActionsOpen(true) : onLogout?.()}
+              accessibilityLabel={user?.role === "owner" && (taxSettingsService || staffService || printerSettingsService) ? "Account options" : "Sign out"}
+              onPress={() => user?.role === "owner" && (taxSettingsService || staffService || printerSettingsService) ? setOwnerActionsOpen(true) : onLogout?.()}
             >
               <Text numberOfLines={1} style={[shellStyles.staffText, !tablet && { maxWidth: 76 }]}>{user ? `${user.displayName}${tablet ? ` · ${user.role}` : ""}` : "Alex · Cashier"}</Text>
             </Pressable>
@@ -323,11 +331,12 @@ export function PosScreen({
         />}
       </View>
 
-      {user?.role === "owner" && (taxSettingsService || staffService) && (
+      {user?.role === "owner" && (taxSettingsService || staffService || printerSettingsService) && (
         <OwnerActionsSheet
           visible={ownerActionsOpen}
           onClose={() => setOwnerActionsOpen(false)}
           onOpenTaxSettings={taxSettingsService ? () => { setOwnerActionsOpen(false); setTaxSettingsOpen(true); } : undefined}
+          onOpenPrinterSettings={printerSettingsService ? () => { setOwnerActionsOpen(false); setPrinterSettingsOpen(true); } : undefined}
           onOpenStaff={staffService ? () => { setOwnerActionsOpen(false); setStaffManagementOpen(true); } : undefined}
           onSignOut={() => { setOwnerActionsOpen(false); onLogout?.(); }}
         />

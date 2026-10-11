@@ -21,6 +21,10 @@ import { SqliteStoreSettingsRepository } from "../data/settings/SqliteStoreSetti
 import { TaxSettingsService } from "../features/settings/TaxSettingsService";
 import { StaffService } from "../features/auth/StaffService";
 import { SqliteUserRepository } from "../data/users/SqliteUserRepository";
+import { SqlitePrinterSettingsRepository } from "../data/settings/SqlitePrinterSettingsRepository";
+import { NativeBluetoothPrinterTransport } from "../data/receipts/NativeBluetoothPrinterTransport";
+import { PrinterSettingsService } from "../features/settings/PrinterSettingsService";
+import { ReceiptPrintService } from "../features/receipts/ReceiptPrintService";
 
 export default function IndexScreen() {
   const { loading, needsSetup, user, logout } = useAuth();
@@ -52,6 +56,14 @@ export default function IndexScreen() {
   const staffService = useMemo(
     () => new StaffService(new SqliteUserRepository(database)),
     [database],
+  );
+  const printerSettingsService = useMemo(
+    () => new PrinterSettingsService(new SqlitePrinterSettingsRepository(database), new NativeBluetoothPrinterTransport(), diagnosticsService),
+    [database, diagnosticsService],
+  );
+  const receiptPrintService = useMemo(
+    () => new ReceiptPrintService(printerSettingsService),
+    [printerSettingsService],
   );
   const [catalogItems, setCatalogItems] = useState<CatalogItem[]>([]);
   const [categoryNames, setCategoryNames] = useState<string[]>([]);
@@ -98,5 +110,5 @@ export default function IndexScreen() {
   if (!user) return <AuthScreen key={needsSetup ? "setup" : "login"} />;
   if (!catalogReady) return <View style={{ flex: 1, justifyContent: "center", backgroundColor: colors.background }}><ActivityIndicator color={colors.accent} /></View>;
   if (catalogError) return <View style={{ flex: 1, justifyContent: "center", backgroundColor: colors.background, padding: 24 }}><Text style={{ color: colors.ink }}>Could not load the catalog. Please restart Kashero.</Text></View>;
-  return <PosScreen user={user} onLogout={logout} catalogItems={catalogItems} categoryNames={categoryNames} catalogService={catalogService} inventoryService={inventoryService} salesService={salesService} paymentService={paymentService} diagnosticsService={diagnosticsService} taxSettingsService={taxSettingsService} staffService={staffService} onCatalogChanged={refreshCatalog} />;
+  return <PosScreen user={user} onLogout={logout} catalogItems={catalogItems} categoryNames={categoryNames} catalogService={catalogService} inventoryService={inventoryService} salesService={salesService} paymentService={paymentService} receiptPrintService={receiptPrintService} diagnosticsService={diagnosticsService} taxSettingsService={taxSettingsService} printerSettingsService={printerSettingsService} staffService={staffService} onCatalogChanged={refreshCatalog} />;
 }

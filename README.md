@@ -17,10 +17,11 @@ Kashero is an actively developed application, not just a screen mockup. The curr
 - Store tax settings and a diagnostics screen for recent application errors.
 - Owner-managed cashier accounts: create accounts with unique usernames, reset passwords, and deactivate or reactivate access. Cashier passwords are stored as salted PBKDF2 hashes.
 - Searchable sales and payment history so staff can review previous receipts and recorded terminal outcomes.
+- Owner-managed Bluetooth receipt printer settings, including device discovery, 58 mm/80 mm paper selection, test printing, and disconnect/replacement.
 
 Kashero supports owner, manager, and cashier roles. Owners can manage staff and tax settings. Owners and managers can manage products and inventory. Cashiers can sign in, handle checkout, and review receipts. Staff account creation, password resets, and status changes are recorded in local diagnostics without recording passwords. The app does not yet offer manager account assignment or customizable permissions.
 
-Kashero does not connect to a bank terminal or printer yet. For a terminal payment, the customer pays on the bank's separate terminal and the cashier records the result in Kashero. Receipt preview is available, but Bluetooth printing is not configured because the printer model has not been confirmed. The app does not currently communicate with a server or upload store data.
+Kashero does not connect to a bank terminal. For a terminal payment, the customer pays on the bank's separate terminal and the cashier records the result in Kashero. Owners can configure a Bluetooth receipt printer from Store options, scan for printers, choose 58 mm or 80 mm paper, send a test receipt, and save or disconnect the selection. The printer setting is stored locally. The app does not currently communicate with a server or upload store data.
 
 ## A typical first-use flow
 
@@ -28,7 +29,7 @@ Kashero does not connect to a bank terminal or printer yet. For a terminal payme
 2. Sign in, add product categories and products, and enter opening stock.
 3. Build an order from the catalog and review the total.
 4. Choose cash and enter the amount received, or choose the terminal used and record its approval code after the bank terminal approves the payment.
-5. Review the receipt on screen, then find it later in receipt history. Bluetooth printing is still pending confirmation of the exact printer model.
+5. Review the receipt on screen, then find it later in receipt history. An owner can set up a printer under Store options; print the test receipt and inspect its output before saving the device.
 
 Tax is off until the store configures a rate. Kashero does not select a tax rate on the store's behalf.
 
@@ -125,7 +126,8 @@ Diagnostics metadata is redacted before storage and export. The diagnostics scre
 
 - Android's configured minimum is API 30 / Android 11. A live Android 11 validation still needs to be completed.
 - iOS's configured minimum is 16.4. The iPhone SE 2 simulator has been used for release-build and sign-in checks on iOS 26.4; iOS 16.4 itself has not been checked yet.
-- The exact Bluetooth thermal printer model and protocol are not confirmed, so printing is not connected.
+- The JK-5802H is the purchased printer model. Printer settings and Bluetooth printing are implemented, but this unit's Bluetooth mode, command compatibility, receipt alignment, and Android/iOS hardware behavior still need physical validation. The current native library uses BLE on iOS and supports BLE or Bluetooth Classic on Android.
+- Printer discovery and receipt printing use a native Bluetooth module in a custom development or release build; Expo Go cannot provide that native module. Android supports Bluetooth Classic and BLE, while this package uses BLE on iOS. The purchased JK-5802H still needs to be physically tested for discovery, printing, and platform compatibility. A saved printer can be disconnected from Store options if it is replaced.
 - Maya and Metrobank are recorded as manual terminal tenders. Kashero does not initiate or verify a card transaction with either bank.
 - There is no multi-store support, cloud sync, or automated cloud backup.
 - Web is not a supported or validated POS target; iOS and Android are the focus.

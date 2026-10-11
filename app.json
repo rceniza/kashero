@@ -13,10 +13,21 @@
     "ios": {
       "supportsTablet": true,
       "deploymentTarget": "16.4",
-      "bundleIdentifier": "com.rceniza.kashero"
+      "bundleIdentifier": "com.rceniza.kashero",
+      "infoPlist": {
+        "NSBluetoothAlwaysUsageDescription": "Kashero uses Bluetooth to find and print receipts with your store printer.",
+        "NSBluetoothPeripheralUsageDescription": "Kashero uses Bluetooth to connect to receipt printers."
+      }
     },
     "android": {
       "package": "com.rceniza.kashero",
+      "permissions": [
+        "android.permission.BLUETOOTH",
+        "android.permission.BLUETOOTH_ADMIN",
+        "android.permission.BLUETOOTH_SCAN",
+        "android.permission.BLUETOOTH_CONNECT",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",

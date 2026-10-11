@@ -9,10 +9,23 @@ const receipt: SaleReceipt = {
 
 describe("receipt print boundary", () => {
   it("formats a completed receipt before handing it to the printer adapter", async () => {
-    const print = jest.fn(async () => ({ status: "printed" as const }));
+    const print = jest.fn(async (_lines: string[]) => ({ status: "printed" as const }));
     const service = new ReceiptPrintService({ print } as ReceiptPrinter, 32);
     expect(await service.reprint(receipt, { method: "cash", tenderedInCentavos: 100, changeInCentavos: 0 })).toEqual({ status: "printed" });
     expect(print).toHaveBeenCalledWith(expect.arrayContaining([expect.stringContaining("KASHERO"), expect.stringContaining("TOTAL")]));
+  });
+
+  it("formats for the configured paper width before reprinting", async () => {
+    let printedLines: string[] = [];
+    const print = jest.fn(async (lines: string[]) => {
+      printedLines = lines;
+      return { status: "printed" as const };
+    });
+    const wideReceipt = { ...receipt, lines: [{ ...receipt.lines[0], productName: "A".repeat(40) }] };
+    const service = new ReceiptPrintService({ print, getReceiptWidth: async () => 48 } as ReceiptPrinter);
+    await service.reprint(wideReceipt, { method: "cash" });
+    expect(printedLines.some((line) => line.length > 32)).toBe(true);
+    expect(printedLines.every((line) => line.length <= 48)).toBe(true);
   });
 
   it("does not send a pending sale to a printer", async () => {

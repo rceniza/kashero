@@ -117,11 +117,15 @@ export const storeSettings = sqliteTable("store_settings", {
   id: text("id").primaryKey().notNull(),
   taxRateBasisPoints: integer("tax_rate_basis_points"),
   taxMode: text("tax_mode", { enum: ["exclusive", "inclusive"] }).notNull().default("exclusive"),
+  printerAddress: text("printer_address"),
+  printerName: text("printer_name"),
+  printerPaperWidthMm: integer("printer_paper_width_mm", { mode: "number" }).notNull().default(58),
   updatedAt: text("updated_at").notNull().default(utcSqlDefault),
 }, (table) => [
   check("store_settings_singleton_id", sql`${table.id} = 'store'`),
   check("store_settings_tax_rate_check", sql`${table.taxRateBasisPoints} is null or (typeof(${table.taxRateBasisPoints}) = 'integer' and ${table.taxRateBasisPoints} between 0 and 10000)`),
   check("store_settings_tax_mode_check", sql`${table.taxMode} in ('exclusive', 'inclusive')`),
+  check("store_settings_printer_width_check", sql`${table.printerPaperWidthMm} in (58, 80)`),
 ]);
 
 export const sales = sqliteTable("sales", {
