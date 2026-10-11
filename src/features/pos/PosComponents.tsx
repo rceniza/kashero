@@ -221,6 +221,7 @@ export function SaleConfirmation({
             <Text style={orderStyles.grandLabel}>Total</Text><Text style={orderStyles.grandValue}>{formatPeso(receipt.totalInCentavos)}</Text>
           </View>
           {!settled && <>
+            <View testID="payment-form" style={orderStyles.paymentForm}>
             <View style={orderStyles.paymentMethods}>
               {(["cash", "maya_terminal", "metrobank_terminal"] as const).map((option) => (
                 <Pressable key={option} accessibilityRole="button" accessibilityLabel={option === "cash" ? "Cash" : `${option === "maya_terminal" ? "Maya" : "Metrobank"} terminal`} accessibilityState={{ selected: method === option }} onPress={() => { setMethod(option); setApprovalCode(""); setTerminalReference(""); }} style={[orderStyles.paymentMethod, method === option && orderStyles.selectedPaymentMethod]}>
@@ -256,6 +257,7 @@ export function SaleConfirmation({
             <Pressable accessibilityRole="button" accessibilityLabel="Cancel sale and return stock" disabled={saving} onPress={onCancel}>
               <Text style={orderStyles.cancelSale}>Cancel sale and return stock</Text>
             </Pressable>
+            </View>
           </>}
           {activeResult?.status === "paid" && activeResult.method === "cash" && <Text accessibilityLabel={`Change due ${formatPeso(activeResult.changeInCentavos)}`} style={orderStyles.changeText}>Change due: {formatPeso(activeResult.changeInCentavos)}</Text>}
           {activeResult?.status === "paid" && activeResult.method !== "cash" && <Text style={orderStyles.changeText}>{activeResult.method === "maya_terminal" ? "Maya" : "Metrobank"} payment recorded</Text>}

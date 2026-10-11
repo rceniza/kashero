@@ -72,6 +72,8 @@ describe("POS checkout feature", () => {
     await render(<PosScreen viewportWidth={320} user={user} catalogItems={[item]} categoryNames={["Grocery"]} paymentService={paymentService} />);
 
     expect(await screen.findByText("Awaiting payment")).toBeTruthy();
+    expect(screen.getByTestId("payment-form").props.style).toEqual(expect.objectContaining({ gap: expect.any(Number) }));
+    expect(screen.getByLabelText("Cash tendered").props.style).toEqual(expect.objectContaining({ minHeight: 52 }));
     await fireEvent.press(screen.getByRole("button", { name: "Keep pending" }));
     await fireEvent.press(await screen.findByLabelText(`Resume payment ${receipt.receiptNumber}`));
     await fireEvent.changeText(screen.getByLabelText("Cash tendered"), "3000.00");
@@ -130,11 +132,15 @@ describe("POS checkout feature", () => {
     await fireEvent.press(await screen.findByRole("button", { name: "Preview receipt" }));
 
     expect(screen.getByText("Receipt preview")).toBeTruthy();
-    expect(screen.getByLabelText("Receipt contents").props.children).toContain("KASHERO");
-    expect(screen.getByLabelText("Receipt contents").props.children).toContain("Tax added (8.25%)");
+    expect(screen.getByLabelText("Receipt contents")).toBeTruthy();
+    expect(screen.getByText("KASHERO")).toBeTruthy();
+    expect(screen.getByText("Tax added (8.25%)")).toBeTruthy();
+    expect(screen.getAllByText("Brown rice · 5 kg bag")).toHaveLength(2);
+    expect(screen.getByText("TOTAL")).toBeTruthy();
     await fireEvent.press(screen.getByRole("button", { name: "Reprint receipt" }));
     expect(await screen.findByText("Printer is not configured yet.")).toBeTruthy();
     expect(print).toHaveBeenCalledTimes(1);
     expect(print.mock.calls[0]?.[0]?.join("\n")).toContain("Change");
+    expect(print.mock.calls[0]?.[0]?.[0]).toBe("            KASHERO");
   });
 });

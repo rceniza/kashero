@@ -34,7 +34,9 @@ describe("receipt history feature", () => {
     expect(screen.getByText("1 receipt")).toBeTruthy();
     await fireEvent.press(screen.getByRole("button", { name: "View receipt K-20261010-0001" }));
     expect(screen.getByText("Receipt preview")).toBeTruthy();
-    expect(screen.getByLabelText("Receipt contents").props.children).toContain("Café latte");
+    expect(screen.getByLabelText("Receipt contents")).toBeTruthy();
+    expect(screen.getByText("Café latte · Regular")).toBeTruthy();
+    expect(screen.getByText(/Approval:.*81/)).toBeTruthy();
     await fireEvent.press(screen.getByRole("button", { name: "Reprint receipt" }));
     await waitFor(() => expect(print).toHaveBeenCalledTimes(1));
   });
