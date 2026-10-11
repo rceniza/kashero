@@ -10,6 +10,29 @@ const owner: User = {
 };
 
 describe("sign-in screen", () => {
+  it("shows setup validation beside each invalid field and clears errors as fields are corrected", async () => {
+    const service = {
+      needsOwnerSetup: jest.fn(async () => true),
+      login: jest.fn(),
+      createOwner: jest.fn(async () => owner),
+    };
+    await render(<AuthProvider service={service as never}><AuthScreen /></AuthProvider>);
+
+    await fireEvent.changeText(screen.getByLabelText("Your name"), "A");
+    await fireEvent.changeText(screen.getByLabelText("Username"), "bad name");
+    await fireEvent.changeText(screen.getByLabelText("Password"), "short");
+    await fireEvent.press(screen.getByRole("button", { name: "Create owner account" }));
+
+    expect(screen.getByText("Enter a name between 2 and 60 characters.")).toBeTruthy();
+    expect(screen.getByText("Use 3–40 letters, numbers, dots, dashes, or underscores.")).toBeTruthy();
+    expect(screen.getByText("Use a password between 10 and 128 characters.")).toBeTruthy();
+    expect(screen.queryByText("Please correct the highlighted fields.")).toBeNull();
+    expect(service.createOwner).not.toHaveBeenCalled();
+
+    await fireEvent.changeText(screen.getByLabelText("Username"), "validname");
+    expect(screen.queryByText("Use 3–40 letters, numbers, dots, dashes, or underscores.")).toBeNull();
+  });
+
   it("advances through the setup fields and submits from the final keyboard action", async () => {
     const service = {
       needsOwnerSetup: jest.fn(async () => true),

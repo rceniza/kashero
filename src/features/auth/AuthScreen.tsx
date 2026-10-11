@@ -4,6 +4,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput
 import { PrimaryButton } from "../../components/PrimaryButton";
 import { colors, radius, spacing, typeScale } from "../../theme/tokens";
 import { useAuth } from "./AuthProvider";
+import { validateCredentials, type CredentialField } from "./credentials";
 
 export function AuthScreen() {
   const { needsSetup, error, login, setupOwner } = useAuth();
@@ -14,11 +15,17 @@ export function AuthScreen() {
   const [displayName, setDisplayName] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<CredentialField, string>>>({});
   const [busy, setBusy] = useState(false);
   const submit = async () => {
     setBusy(true);
     try {
-      if (needsSetup) await setupOwner({ displayName, username, password });
+      if (needsSetup) {
+        const errors = validateCredentials({ displayName, username, password });
+        setFieldErrors(errors);
+        if (Object.keys(errors).length > 0) return;
+        await setupOwner({ displayName, username, password });
+      }
       else await login(username, password);
     } catch {
       // The provider exposes a safe message for this form.
@@ -43,11 +50,12 @@ export function AuthScreen() {
               autoCapitalize="words"
               autoCorrect={false}
               value={displayName}
-              onChangeText={setDisplayName}
+              onChangeText={(value) => { setDisplayName(value); setFieldErrors((current) => ({ ...current, displayName: undefined })); }}
               onSubmitEditing={() => usernameInput.current?.focus()}
-              style={styles.input}
+              style={[styles.input, fieldErrors.displayName && styles.inputInvalid]}
               returnKeyType="next"
             />
+            {fieldErrors.displayName && <Text accessibilityRole="alert" style={styles.fieldError}>{fieldErrors.displayName}</Text>}
           </View>
         )}
         <View style={styles.field}>
@@ -59,11 +67,12 @@ export function AuthScreen() {
             autoCapitalize="none"
             autoCorrect={false}
             value={username}
-            onChangeText={setUsername}
+            onChangeText={(value) => { setUsername(value); setFieldErrors((current) => ({ ...current, username: undefined })); }}
             onSubmitEditing={() => passwordInput.current?.focus()}
-            style={styles.input}
+            style={[styles.input, fieldErrors.username && styles.inputInvalid]}
             returnKeyType="next"
           />
+          {fieldErrors.username && <Text accessibilityRole="alert" style={styles.fieldError}>{fieldErrors.username}</Text>}
         </View>
         <View style={styles.field}>
           <Text style={styles.label}>Password</Text>
@@ -75,12 +84,13 @@ export function AuthScreen() {
             autoCorrect={false}
             secureTextEntry
             value={password}
-            onChangeText={setPassword}
+            onChangeText={(value) => { setPassword(value); setFieldErrors((current) => ({ ...current, password: undefined })); }}
             onSubmitEditing={submit}
             blurOnSubmit
-            style={styles.input}
+            style={[styles.input, fieldErrors.password && styles.inputInvalid]}
             returnKeyType="done"
           />
+          {fieldErrors.password && <Text accessibilityRole="alert" style={styles.fieldError}>{fieldErrors.password}</Text>}
         </View>
         {error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
         <PrimaryButton label={busy ? "Please wait…" : needsSetup ? "Create owner account" : "Sign in"} onPress={submit} disabled={busy} />
@@ -100,5 +110,7 @@ const styles = StyleSheet.create({
   field: { marginBottom: spacing.md },
   label: { color: colors.ink, fontWeight: "700", fontSize: typeScale.body, marginBottom: spacing.xs },
   input: { minHeight: 50, backgroundColor: colors.surface, borderColor: colors.line, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: spacing.md, color: colors.ink },
+  inputInvalid: { borderColor: "#B42318" },
+  fieldError: { color: "#B42318", fontSize: 12, lineHeight: 17, marginTop: spacing.xs },
   error: { color: "#B42318", marginBottom: spacing.md },
 });

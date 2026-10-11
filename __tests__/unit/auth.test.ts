@@ -11,6 +11,14 @@ describe("local account rules", () => {
     expect(validateCredentials({ displayName: "S", username: "x", password: "short" })).toHaveProperty("password");
   });
 
+  it("returns a specific correction for each invalid owner setup field", () => {
+    expect(validateCredentials({ displayName: "A", username: "bad name", password: "short" })).toEqual({
+      displayName: "Enter a name between 2 and 60 characters.",
+      username: "Use 3–40 letters, numbers, dots, dashes, or underscores.",
+      password: "Use a password between 10 and 128 characters.",
+    });
+  });
+
   it("accepts known roles and applies the role hierarchy", () => {
     expect(parseUserRole("manager")).toBe("manager");
     expect(parseUserRole("admin")).toBeNull();
