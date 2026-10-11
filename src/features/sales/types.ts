@@ -34,6 +34,23 @@ export type SaleReceipt = SaleTotals & {
   createdAt: string;
 };
 
+export type SaleHistoryPayment = {
+  id: string;
+  method: "cash" | "maya_terminal" | "metrobank_terminal";
+  status: "pending" | "paid" | "failed" | "cancelled";
+  tenderedInCentavos: number;
+  changeInCentavos: number;
+  approvalCode: string | null;
+  terminalReference: string | null;
+  createdAt: string;
+};
+
+export type SaleHistoryEntry = {
+  receipt: SaleReceipt;
+  cashierName: string;
+  payments: SaleHistoryPayment[];
+};
+
 export function validateSaleLines(lines: SaleLineInput[]): string | null {
   if (lines.length === 0) return "Add at least one item to the cart.";
   if (lines.length > 100) return "A sale cannot contain more than 100 items.";

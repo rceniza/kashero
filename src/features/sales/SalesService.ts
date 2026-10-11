@@ -10,6 +10,10 @@ export class SalesService {
     if (error) throw new SaleValidationError(error);
     return this.repository.createPendingSale(userId, lines);
   }
+
+  listHistory() {
+    return this.repository.listHistory();
+  }
 }
 
 export class SaleValidationError extends Error {}

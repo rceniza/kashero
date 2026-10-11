@@ -89,4 +89,31 @@ describe("SQLite sales feature", () => {
     expect(database.prepare("SELECT quantity_on_hand FROM inventory WHERE variant_id = ?").get(variant.id)).toMatchObject({ quantity_on_hand: 1 });
     database.close();
   });
+
+  it("lists prior receipts with cashier attribution, sale snapshots, and ordered payment attempts", async () => {
+    const { database, products, sales } = setup();
+    const variant = await createItem(products, "Coffee", 500);
+    database.prepare("UPDATE inventory SET quantity_on_hand = 5 WHERE variant_id = ?").run(variant.id);
+    const receipt = await sales.createPendingSale("user-1", [{ variantId: variant.id, quantity: 2 }]);
+    database.prepare("UPDATE sales SET status = 'paid' WHERE id = ?").run(receipt.id);
+    database.prepare(`INSERT INTO payments (id, sale_id, user_id, method, status, amount_in_centavos, tendered_in_centavos, change_in_centavos, failure_reason, created_at, updated_at)
+      VALUES ('attempt-1', ?, 'user-1', 'cash', 'failed', 1000, 500, 0, 'Insufficient cash tendered.', '2026-10-10T10:00:00.000Z', '2026-10-10T10:00:00.000Z')`).run(receipt.id);
+    database.prepare(`INSERT INTO payments (id, sale_id, user_id, method, status, amount_in_centavos, tendered_in_centavos, change_in_centavos, approval_code, terminal_reference, created_at, updated_at)
+      VALUES ('attempt-2', ?, 'user-1', 'metrobank_terminal', 'paid', 1000, 1000, 0, 'APPROVED-9981', 'TERM-1', '2026-10-10T10:01:00.000Z', '2026-10-10T10:01:00.000Z')`).run(receipt.id);
+    const newerReceipt = await sales.createPendingSale("user-1", [{ variantId: variant.id, quantity: 1 }]);
+
+    const history = await sales.listHistory();
+    expect(history).toHaveLength(2);
+    expect(history.map(({ receipt: item }) => item.id)).toEqual([newerReceipt.id, receipt.id]);
+    expect(history[1]).toMatchObject({
+      cashierName: "Pat Cashier",
+      receipt: { id: receipt.id, receiptNumber: receipt.receiptNumber, status: "paid", totalInCentavos: 1000,
+        lines: [{ productName: "Coffee", variantName: "Pack", quantity: 2, unitPriceInCentavos: 500 }] },
+      payments: [
+        { id: "attempt-1", method: "cash", status: "failed", tenderedInCentavos: 500 },
+        { id: "attempt-2", method: "metrobank_terminal", status: "paid", approvalCode: "APPROVED-9981", terminalReference: "TERM-1" },
+      ],
+    });
+    database.close();
+  });
 });

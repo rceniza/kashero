@@ -38,6 +38,7 @@ import { DiagnosticsScreen } from "../diagnostics/DiagnosticsScreen";
 import type { DiagnosticsService } from "../diagnostics/DiagnosticsService";
 import { OwnerActionsSheet } from "../settings/OwnerActionsSheet";
 import { TaxSettingsScreen } from "../settings/TaxSettingsScreen";
+import { SaleHistoryScreen } from "../sales/SaleHistoryScreen";
 import type { TaxSettingsService } from "../settings/TaxSettingsService";
 import {
   catalog,
@@ -107,6 +108,7 @@ export function PosScreen({
   const [paymentSaving, setPaymentSaving] = useState(false);
   const [paymentError, setPaymentError] = useState("");
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
+  const [receiptHistoryOpen, setReceiptHistoryOpen] = useState(false);
   const [ownerActionsOpen, setOwnerActionsOpen] = useState(false);
   const [taxSettingsOpen, setTaxSettingsOpen] = useState(false);
   const items = catalogItems ?? catalog;
@@ -258,6 +260,9 @@ export function PosScreen({
   if (diagnosticsOpen && diagnosticsService) {
     return <DiagnosticsScreen service={diagnosticsService} onClose={() => setDiagnosticsOpen(false)} />;
   }
+  if (receiptHistoryOpen && salesService) {
+    return <SaleHistoryScreen service={salesService} printService={printing} onClose={() => setReceiptHistoryOpen(false)} />;
+  }
   if (taxSettingsOpen && taxSettingsService && user) {
     return <TaxSettingsScreen service={taxSettingsService} user={user} onClose={() => setTaxSettingsOpen(false)} />;
   }
@@ -281,6 +286,8 @@ export function PosScreen({
           {tablet && <PosNavigation
             canManageStore={canManageStore}
             showDiagnostics={!!diagnosticsService}
+            showReceiptHistory={!!salesService}
+            onOpenReceiptHistory={() => setReceiptHistoryOpen(true)}
             onOpenCatalog={() => setManageCatalog(true)}
             onOpenInventory={() => setManageInventory(true)}
             onOpenDiagnostics={() => setDiagnosticsOpen(true)}
@@ -300,6 +307,8 @@ export function PosScreen({
           phone
           canManageStore={canManageStore}
           showDiagnostics={!!diagnosticsService}
+          showReceiptHistory={!!salesService}
+          onOpenReceiptHistory={() => setReceiptHistoryOpen(true)}
           onOpenCatalog={() => setManageCatalog(true)}
           onOpenInventory={() => setManageInventory(true)}
           onOpenDiagnostics={() => setDiagnosticsOpen(true)}
@@ -437,18 +446,22 @@ function PosNavigation({
   phone = false,
   canManageStore,
   showDiagnostics,
+  showReceiptHistory,
   onOpenCatalog,
   onOpenInventory,
   onOpenDiagnostics,
+  onOpenReceiptHistory,
 }: {
   phone?: boolean;
   canManageStore: boolean;
   showDiagnostics: boolean;
+  showReceiptHistory: boolean;
   onOpenCatalog(): void;
   onOpenInventory(): void;
   onOpenDiagnostics(): void;
+  onOpenReceiptHistory(): void;
 }) {
-  if (!canManageStore && !showDiagnostics) return null;
+  if (!canManageStore && !showDiagnostics && !showReceiptHistory) return null;
   return (
     <View style={[shellStyles.headerActionGroup, phone && shellStyles.phoneHeaderActions]} testID={phone ? "pos-navigation-phone" : "pos-navigation-tablet"}>
       {canManageStore && <>
@@ -459,6 +472,9 @@ function PosNavigation({
           <Text style={shellStyles.headerButtonText}>Stock</Text>
         </Pressable>
       </>}
+      {showReceiptHistory && <Pressable accessibilityRole="button" accessibilityLabel="Receipts" onPress={onOpenReceiptHistory} style={[shellStyles.headerButton, phone && shellStyles.phoneHeaderButton]}>
+        <Text style={shellStyles.headerButtonText}>Receipts</Text>
+      </Pressable>}
       {showDiagnostics && <Pressable accessibilityRole="button" accessibilityLabel="Diagnostics" onPress={onOpenDiagnostics} style={[shellStyles.headerButton, phone && shellStyles.phoneHeaderButton]}>
         <Text style={shellStyles.headerButtonText}>{phone ? "Logs" : "Diagnostics"}</Text>
       </Pressable>}

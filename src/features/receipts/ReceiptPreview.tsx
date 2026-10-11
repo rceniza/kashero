@@ -9,12 +9,13 @@ import type { ReceiptPrintService } from "./ReceiptPrintService";
 import type { ReceiptPaymentDetails } from "./receiptFormatter";
 
 export function ReceiptPreview({
-  receipt, payment, printService, onClose,
+  receipt, payment, printService, onClose, allowReprint = true,
 }: {
   receipt: SaleReceipt;
   payment: ReceiptPaymentDetails;
   printService: ReceiptPrintService;
   onClose: () => void;
+  allowReprint?: boolean;
 }) {
   const [printState, setPrintState] = useState("");
   const [printing, setPrinting] = useState(false);
@@ -42,9 +43,9 @@ export function ReceiptPreview({
             <Text accessibilityLabel="Receipt contents" style={orderStyles.receiptText}>{lines.join("\n")}</Text>
           </ScrollView>
           {!!printState && <Text accessibilityRole="alert" style={orderStyles.receiptPrintMessage}>{printState}</Text>}
-          <Pressable accessibilityRole="button" disabled={printing} onPress={reprint} style={orderStyles.receiptAction}>
+          {allowReprint && <Pressable accessibilityRole="button" disabled={printing} onPress={reprint} style={orderStyles.receiptAction}>
             <Text style={orderStyles.receiptActionText}>{printing ? "Sending…" : "Reprint receipt"}</Text>
-          </Pressable>
+          </Pressable>}
           <Pressable accessibilityRole="button" onPress={onClose} style={orderStyles.receiptClose}>
             <Text style={orderStyles.receiptCloseText}>Close preview</Text>
           </Pressable>

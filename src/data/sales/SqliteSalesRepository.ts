@@ -1,6 +1,6 @@
 import { createUuid, utcNowIso } from "../../shared/ids";
 import { calculateStockAfter } from "../../features/inventory/types";
-import { calculateSaleTotals, type SaleLineInput, type SaleReceipt, type SaleTaxMode } from "../../features/sales/types";
+import { calculateSaleTotals, type SaleHistoryEntry, type SaleHistoryPayment, type SaleLineInput, type SaleReceipt, type SaleTaxMode } from "../../features/sales/types";
 import type { SalesRepository } from "../../features/sales/SalesRepository";
 
 interface SqlExecutor {
@@ -20,9 +20,65 @@ type ProductRow = {
   price_in_centavos: number;
   quantity_on_hand: number;
 };
+type HistorySaleRow = {
+  id: string; receipt_number: string; user_id: string; status: SaleReceipt["status"];
+  subtotal_in_centavos: number; discount_in_centavos: number; tax_in_centavos: number;
+  total_in_centavos: number; created_at: string; cashier_name: string;
+};
+type HistoryLineRow = {
+  sale_id: string; variant_id: string; product_name: string; variant_name: string; sku: string | null;
+  quantity: number; unit_price_in_centavos: number; discount_in_centavos: number;
+  tax_rate_basis_points: number | null; tax_mode: SaleTaxMode | null; tax_in_centavos: number; line_total_in_centavos: number;
+};
+type HistoryPaymentRow = {
+  sale_id: string; id: string; method: SaleHistoryPayment["method"]; status: SaleHistoryPayment["status"];
+  tendered_in_centavos: number; change_in_centavos: number; approval_code: string | null;
+  terminal_reference: string | null; created_at: string;
+};
 
 export class SqliteSalesRepository implements SalesRepository {
   constructor(private readonly database: SqlDatabase) {}
+
+  async listHistory(): Promise<SaleHistoryEntry[]> {
+    const sales = await this.database.getAllAsync<HistorySaleRow>(
+      `SELECT s.*, u.display_name AS cashier_name FROM sales s
+       JOIN users u ON u.id = s.user_id ORDER BY s.created_at DESC, s.rowid DESC`,
+    );
+    if (!sales.length) return [];
+    const [lines, payments] = await Promise.all([
+      this.database.getAllAsync<HistoryLineRow>(
+        `SELECT sale_id, variant_id, product_name, variant_name, sku, quantity, unit_price_in_centavos,
+         discount_in_centavos, tax_rate_basis_points, tax_mode, tax_in_centavos, line_total_in_centavos
+         FROM sale_items ORDER BY rowid`,
+      ),
+      this.database.getAllAsync<HistoryPaymentRow>(
+        `SELECT sale_id, id, method, status, tendered_in_centavos, change_in_centavos, approval_code,
+         terminal_reference, created_at FROM payments ORDER BY created_at, rowid`,
+      ),
+    ]);
+    const linesBySale = groupBySale(lines);
+    const paymentsBySale = groupBySale(payments);
+    return sales.map((sale) => ({
+      cashierName: sale.cashier_name,
+      receipt: {
+        id: sale.id, receiptNumber: sale.receipt_number, userId: sale.user_id, status: sale.status,
+        createdAt: sale.created_at, subtotalInCentavos: sale.subtotal_in_centavos,
+        discountInCentavos: sale.discount_in_centavos, taxInCentavos: sale.tax_in_centavos,
+        totalInCentavos: sale.total_in_centavos,
+        lines: (linesBySale.get(sale.id) ?? []).map((line) => ({
+          variantId: line.variant_id, productName: line.product_name, variantName: line.variant_name,
+          sku: line.sku, quantity: line.quantity, unitPriceInCentavos: line.unit_price_in_centavos,
+          discountInCentavos: line.discount_in_centavos, taxRateBasisPoints: line.tax_rate_basis_points,
+          taxMode: line.tax_mode, taxInCentavos: line.tax_in_centavos, lineTotalInCentavos: line.line_total_in_centavos,
+        })),
+      },
+      payments: (paymentsBySale.get(sale.id) ?? []).map((payment) => ({
+        id: payment.id, method: payment.method, status: payment.status,
+        tenderedInCentavos: payment.tendered_in_centavos, changeInCentavos: payment.change_in_centavos,
+        approvalCode: payment.approval_code, terminalReference: payment.terminal_reference, createdAt: payment.created_at,
+      })),
+    }));
+  }
 
   async createPendingSale(userId: string, lines: SaleLineInput[]): Promise<SaleReceipt> {
     const saleId = createUuid();
@@ -109,4 +165,14 @@ export class SqliteSalesRepository implements SalesRepository {
     if (!receipt) throw new Error("Sale could not be recorded.");
     return receipt;
   }
+}
+
+function groupBySale<T extends { sale_id: string }>(rows: T[]): Map<string, T[]> {
+  const grouped = new Map<string, T[]>();
+  for (const row of rows) {
+    const group = grouped.get(row.sale_id);
+    if (group) group.push(row);
+    else grouped.set(row.sale_id, [row]);
+  }
+  return grouped;
 }

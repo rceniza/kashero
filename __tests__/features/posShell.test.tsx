@@ -7,6 +7,7 @@ import type { DiagnosticsService } from "../../src/features/diagnostics/Diagnost
 import type { ProductCatalogService } from "../../src/features/catalog/ProductCatalogService";
 import type { InventoryService } from "../../src/features/inventory/InventoryService";
 import type { User } from "../../src/features/auth/UserRepository";
+import type { SalesService } from "../../src/features/sales/SalesService";
 
 describe("responsive POS shell", () => {
   it("exposes product and order controls with accessible labels and 44pt touch targets", async () => {
@@ -86,6 +87,23 @@ describe("responsive POS shell", () => {
     expect(screen.getByText("No diagnostics have been recorded.")).toBeTruthy();
     await fireEvent.press(screen.getByRole("button", { name: "Close diagnostics" }));
     expect(screen.getByTestId("pos-shell-phone")).toBeTruthy();
+  });
+
+  it("lets a cashier open prior receipts from the 320px navigation", async () => {
+    const user: User = { id: "cashier-1", displayName: "Sam", username: "sam", role: "cashier", isActive: true, createdAt: "", updatedAt: "" };
+    const salesService = { listHistory: jest.fn(async () => []) } as unknown as SalesService;
+    await render(<PosScreen viewportWidth={320} user={user} salesService={salesService} />);
+    const receiptsButton = screen.getByRole("button", { name: "Receipts" });
+    expect(StyleSheet.flatten(receiptsButton.props.style)).toMatchObject({ minHeight: 44, flex: 1 });
+    await fireEvent.press(receiptsButton);
+    expect(screen.getByTestId("receipt-history-screen")).toBeTruthy();
+    expect(screen.getByText("No receipts have been recorded yet.")).toBeTruthy();
+    await fireEvent.press(screen.getByRole("button", { name: "Close receipts" }));
+    expect(screen.getByTestId("pos-shell-phone")).toBeTruthy();
+    await render(<PosScreen viewportWidth={1024} user={user} salesService={salesService} />);
+    expect(screen.getByTestId("pos-navigation-tablet")).toBeTruthy();
+    await fireEvent.press(screen.getByRole("button", { name: "Receipts" }));
+    expect(screen.getByTestId("receipt-history-screen")).toBeTruthy();
   });
 
   it("shows clear, touch-sized management buttons in phone and tablet headers", async () => {
