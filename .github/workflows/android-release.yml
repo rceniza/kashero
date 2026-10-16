@@ -100,7 +100,7 @@ jobs:
           - Automated tests, lint, TypeScript, and database schema checks passed in this workflow.
           - APK signature verification passed. Install and Bluetooth behavior still need a physical Android device check.
 
-          See `SHA256SUMS.txt` for the APK checksum.
+          See the attached SHA256SUMS.txt file for the APK checksum.
           EOF
           gh release create "$GITHUB_REF_NAME" \
             --title "Kashero ${VERSION}" \
