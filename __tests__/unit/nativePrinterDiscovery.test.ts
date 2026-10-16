@@ -34,7 +34,7 @@ describe("native printer discovery payloads", () => {
     const transport = new NativeBluetoothPrinterTransport();
     await transport.print("bt:AA:BB:CC", 58, ["TOTAL                   PHP 26.01"]);
     expect(ThermalPrinter.printReceipt).toHaveBeenCalledWith(expect.objectContaining({
-      printers: [{ address: "bt:AA:BB:CC", options: { paperWidthMm: 58, marginMm: 1, disableCutPaper: true } }],
+      printers: [{ address: "bt:AA:BB:CC", options: { paperWidthMm: 58, marginMm: 1, lineSpacing: 20, disableCutPaper: true } }],
       documents: [[{ type: "text", content: "TOTAL                   PHP 26.01", style: { font: "B" } }]],
     }));
   });

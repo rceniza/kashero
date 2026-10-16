@@ -50,7 +50,19 @@ describe("receipt formatting", () => {
     expect(lines.every((line) => line.length <= 40)).toBe(true);
     expect([...text].every((character) => character.charCodeAt(0) <= 127)).toBe(true);
     expect(text).toContain("PHP 26.01");
-    expect(text).toContain("2 x PHP 14.00");
+    const itemTotalLine = lines.find((line) => line.includes("PHP 26.01"));
+    expect(itemTotalLine).toBe("- Large cup PHP 26.01");
+    expect(lines[lines.indexOf(itemTotalLine ?? "") - 1]).toContain("2x Long name");
+    expect(lines.every((line) => line.trim().length > 0)).toBe(true);
     expect(text).not.toContain("₱");
+  });
+
+  it("keeps a short item name and its price together without filler spaces", () => {
+    const shortItem = {
+      ...receipt,
+      lines: [{ ...receipt.lines[0], productName: "Tea", variantName: "Cup", quantity: 1 }],
+    };
+    const lines = formatReceipt(shortItem, { method: "cash" }, 40);
+    expect(lines).toContain("1x Tea - Cup PHP 26.01");
   });
 });

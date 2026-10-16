@@ -29,9 +29,12 @@ export function formatReceipt(
   ];
 
   for (const item of receipt.lines) {
-    const name = `${item.productName} - ${item.variantName}`;
-    lines.push(...wrapLine(name, width - 10));
-    lines.push(...alignColumns(`${item.quantity} x ${formatPrintAmount(item.unitPriceInCentavos)}`, formatPrintAmount(item.lineTotalInCentavos), width));
+    const label = `${item.quantity}x ${item.productName} - ${item.variantName}`;
+    const total = formatPrintAmount(item.lineTotalInCentavos);
+    const labelWidth = width - total.length - 1;
+    const labelLines = wrapLine(label, labelWidth);
+    const finalLabelLine = labelLines.pop() ?? "";
+    lines.push(...labelLines, `${finalLabelLine} ${total}`);
   }
 
   lines.push(divider);

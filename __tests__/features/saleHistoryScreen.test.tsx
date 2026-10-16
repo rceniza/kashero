@@ -41,7 +41,8 @@ describe("receipt history feature", () => {
     await waitFor(() => expect(print).toHaveBeenCalledTimes(1));
     const printedLines = print.mock.calls[0]?.[0] ?? [];
     expect(printedLines.every((line) => line.length <= 40)).toBe(true);
-    expect(printedLines.join("\n")).toContain("PHP 125.00");
+    const itemTotalLine = printedLines.find((line) => line.includes("PHP 125.00"));
+    expect(itemTotalLine).toBe("1x Café latte - Regular PHP 125.00");
     expect(printedLines.join("\n")).not.toContain("₱");
   });
 
