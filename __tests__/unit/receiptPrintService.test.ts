@@ -2,7 +2,7 @@ import { ReceiptPrintService, type ReceiptPrinter } from "../../src/features/rec
 import type { SaleReceipt } from "../../src/features/sales/types";
 
 const receipt: SaleReceipt = {
-  id: "sale-1", receiptNumber: "K-1", userId: "cashier-1", status: "paid", createdAt: "2026-10-05T10:30:00.000Z",
+  id: "sale-1", receiptNumber: "K-1", storeName: "KASHERO", userId: "cashier-1", status: "paid", createdAt: "2026-10-05T10:30:00.000Z",
   subtotalInCentavos: 100, discountInCentavos: 0, taxInCentavos: 0, totalInCentavos: 100,
   lines: [{ variantId: "variant-1", productName: "Tea", variantName: "Cup", sku: null, quantity: 1, unitPriceInCentavos: 100, discountInCentavos: 0, taxRateBasisPoints: null, taxMode: null, taxInCentavos: 0, lineTotalInCentavos: 100 }],
 };
