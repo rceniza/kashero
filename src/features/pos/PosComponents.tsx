@@ -1,4 +1,5 @@
 import { Modal, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useState } from "react";
 
 import { PrimaryButton } from "../../components/PrimaryButton";
@@ -131,9 +132,10 @@ export function OrderSheet({
   checkoutDisabled?: boolean;
   checkoutError?: string;
 }) {
+  const insets = useSafeAreaInsets();
   return (
     <View style={orderStyles.sheetBackdrop}>
-      <View style={orderStyles.sheet}>
+      <View testID="order-sheet" style={[orderStyles.sheet, { paddingBottom: Math.max(34, insets.bottom) }]}>
         <View style={orderStyles.sheetHandle} />
         <View style={orderStyles.orderHeading}>
           <Text style={shellStyles.sectionTitle}>Your order</Text>

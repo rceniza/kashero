@@ -2,7 +2,7 @@ import { Stack } from "expo-router";
 import { useMemo } from "react";
 import { StatusBar } from "expo-status-bar";
 import { SQLiteProvider, useSQLiteContext } from "expo-sqlite";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 import { initializeDatabase } from "../data/db/database";
 import { SqliteUserRepository } from "../data/users/SqliteUserRepository";
@@ -13,12 +13,14 @@ import { SqliteDiagnosticRepository } from "../data/diagnostics/SqliteDiagnostic
 
 export default function RootLayout() {
   return (
-    <SafeAreaView style={{ flex: 1 }} edges={["top", "left", "right"]}>
-      <StatusBar style="dark" />
-      <SQLiteProvider databaseName="kashero.db" onInit={initializeDatabase}>
-        <AuthShell />
-      </SQLiteProvider>
-    </SafeAreaView>
+    <SafeAreaProvider>
+      <SafeAreaView style={{ flex: 1 }} edges={["top", "left", "right", "bottom"]}>
+        <StatusBar style="dark" />
+        <SQLiteProvider databaseName="kashero.db" onInit={initializeDatabase}>
+          <AuthShell />
+        </SQLiteProvider>
+      </SafeAreaView>
+    </SafeAreaProvider>
   );
 }
 

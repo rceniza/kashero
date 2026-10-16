@@ -1,4 +1,5 @@
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { PrimaryButton } from "../../components/PrimaryButton";
 import { colors, minimumTouchTarget, radius, spacing, typeScale } from "../../theme/tokens";
@@ -6,11 +7,12 @@ import { colors, minimumTouchTarget, radius, spacing, typeScale } from "../../th
 type Props = { visible: boolean; onClose(): void; onOpenTaxSettings?: () => void; onOpenPrinterSettings?: () => void; onOpenStaff?: () => void; onSignOut(): void };
 
 export function OwnerActionsSheet({ visible, onClose, onOpenTaxSettings, onOpenPrinterSettings, onOpenStaff, onSignOut }: Props) {
+  const insets = useSafeAreaInsets();
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.backdrop}>
         <Pressable accessibilityRole="button" accessibilityLabel="Close account options" onPress={onClose} style={StyleSheet.absoluteFill} />
-        <View style={styles.sheet}>
+        <View testID="owner-actions-sheet" style={[styles.sheet, { paddingBottom: Math.max(spacing.xxl, insets.bottom) }]}>
           <View style={styles.handle} />
           <Text style={styles.title}>Store options</Text>
           <Text style={styles.subtitle}>Signed in as the owner</Text>

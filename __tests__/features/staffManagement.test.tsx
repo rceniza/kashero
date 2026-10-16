@@ -6,6 +6,7 @@ jest.mock("../../src/features/auth/passwordHash", () => ({
 
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
+import { StyleSheet } from "react-native";
 
 import { SqliteUserRepository } from "../../src/data/users/SqliteUserRepository";
 import { AuthService } from "../../src/features/auth/AuthService";
@@ -78,6 +79,7 @@ describe("owner staff management workflow", () => {
     const state = setup();
     const view = await render(<PosScreen viewportWidth={320} user={owner} staffService={state.service} />);
     await fireEvent.press(screen.getByRole("button", { name: "Account options" }));
+    expect(StyleSheet.flatten(screen.getByTestId("owner-actions-sheet").props.style)).toMatchObject({ paddingBottom: 48 });
     await fireEvent.press(screen.getByRole("button", { name: "Manage staff accounts" }));
     expect(await screen.findByTestId("staff-management-screen")).toBeTruthy();
     const cashier = { ...owner, id: "cashier-1", displayName: "Pat Cashier", username: "pat", role: "cashier" as const };

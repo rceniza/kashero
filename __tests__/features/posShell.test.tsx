@@ -19,6 +19,7 @@ describe("responsive POS shell", () => {
     await fireEvent.press(screen.getByRole("button", { name: /View order/ }));
     const closeOrder = screen.getByRole("button", { name: "Close order" });
     expect(StyleSheet.flatten(closeOrder.props.style)).toMatchObject({ minWidth: 44, minHeight: 44 });
+    expect(StyleSheet.flatten(screen.getByTestId("order-sheet").props.style)).toMatchObject({ paddingBottom: 48 });
   });
 
   it("keeps catalog search, category and order summary available at 320px", async () => {
