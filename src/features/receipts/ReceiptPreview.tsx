@@ -39,7 +39,7 @@ export function ReceiptPreview({
           <Text style={orderStyles.receiptPreviewTitle}>Receipt preview</Text>
           <Text style={orderStyles.receiptPreviewSubtitle}>{receipt.receiptNumber} · {formatPeso(receipt.totalInCentavos)}</Text>
           <ScrollView accessibilityLabel="Receipt contents" style={orderStyles.receiptPaper} contentContainerStyle={orderStyles.receiptPaperContent}>
-            <Text style={orderStyles.receiptBrand}>KASHERO</Text>
+            <Text style={orderStyles.receiptBrand}>{receipt.storeName || "KASHERO"}</Text>
             <Text style={orderStyles.receiptHeading}>SALES RECEIPT</Text>
             <View style={orderStyles.receiptDivider} />
             <Text style={orderStyles.receiptMeta}>Receipt: {receipt.receiptNumber}</Text>

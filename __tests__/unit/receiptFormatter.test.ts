@@ -2,7 +2,7 @@ import { formatReceipt, maskApprovalCode, wrapLine } from "../../src/features/re
 import type { SaleReceipt } from "../../src/features/sales/types";
 
 const receipt: SaleReceipt = {
-  id: "sale-1", receiptNumber: "K-20261005-0001", userId: "cashier-1", status: "paid", createdAt: "2026-10-05T10:30:00.000Z",
+  id: "sale-1", receiptNumber: "K-20261005-0001", storeName: "KASHERO", userId: "cashier-1", status: "paid", createdAt: "2026-10-05T10:30:00.000Z",
   subtotalInCentavos: 2501, discountInCentavos: 100, taxInCentavos: 200, totalInCentavos: 2601,
   lines: [{ variantId: "variant-1", productName: "Long name for coffee beans", variantName: "Large cup", sku: null, quantity: 2, unitPriceInCentavos: 1400, discountInCentavos: 100, taxRateBasisPoints: 800, taxMode: "exclusive", taxInCentavos: 200, lineTotalInCentavos: 2601 }],
 };

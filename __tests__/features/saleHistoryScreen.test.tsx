@@ -8,7 +8,7 @@ import { ReceiptPrintService, type ReceiptPrinter } from "../../src/features/rec
 const entry: SaleHistoryEntry = {
   cashierName: "Sam Cashier",
   receipt: {
-    id: "sale-1", receiptNumber: "K-20261010-0001", userId: "cashier-1", status: "paid", createdAt: "2026-10-10T10:00:00.000Z",
+    id: "sale-1", receiptNumber: "K-20261010-0001", storeName: "CENERE", userId: "cashier-1", status: "paid", createdAt: "2026-10-10T10:00:00.000Z",
     subtotalInCentavos: 12500, discountInCentavos: 0, taxInCentavos: 0, totalInCentavos: 12500,
     lines: [{ variantId: "variant-1", productName: "Café latte", variantName: "Regular", sku: null, quantity: 1, unitPriceInCentavos: 12500, discountInCentavos: 0, taxRateBasisPoints: null, taxMode: null, taxInCentavos: 0, lineTotalInCentavos: 12500 }],
   },
@@ -34,6 +34,7 @@ describe("receipt history feature", () => {
     expect(screen.getByText("1 receipt")).toBeTruthy();
     await fireEvent.press(screen.getByRole("button", { name: "View receipt K-20261010-0001" }));
     expect(screen.getByText("Receipt preview")).toBeTruthy();
+    expect(screen.getByText("CENERE")).toBeTruthy();
     expect(screen.getByLabelText("Receipt contents")).toBeTruthy();
     expect(screen.getByText("Café latte · Regular")).toBeTruthy();
     expect(screen.getByText(/Approval:.*81/)).toBeTruthy();
@@ -48,6 +49,7 @@ describe("receipt history feature", () => {
     expect(printedLines.join("\n")).not.toContain("₱");
     expect(printedLines.join("\n")).not.toContain("PHP ");
     expect(printedLines.join("\n")).toContain("DESCRIPTION");
+    expect(printedLines[0]?.trim()).toBe("CENERE");
   });
 
   it("shows voided sales as reviewable records without offering reprint", async () => {

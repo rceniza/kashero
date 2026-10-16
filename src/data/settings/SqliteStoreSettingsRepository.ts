@@ -22,6 +22,23 @@ export class SqliteStoreSettingsRepository implements StoreSettingsRepository {
       : { rateBasisPoints: null, mode: "exclusive" };
   }
 
+  async getStoreName(): Promise<string> {
+    const row = await this.database.getFirstAsync<{ store_name: string }>(
+      "SELECT store_name FROM store_settings WHERE id = 'store'",
+    );
+    return row?.store_name ?? "KASHERO";
+  }
+
+  async saveStoreName(name: string): Promise<void> {
+    await this.database.runAsync(
+      `INSERT INTO store_settings (id, store_name) VALUES ('store', ?)
+       ON CONFLICT(id) DO UPDATE SET
+         store_name = excluded.store_name,
+         updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')`,
+      name,
+    );
+  }
+
   async saveTaxSettings(settings: StoreTaxSettings): Promise<void> {
     await this.database.runAsync(
       `INSERT INTO store_settings (id, tax_rate_basis_points, tax_mode)

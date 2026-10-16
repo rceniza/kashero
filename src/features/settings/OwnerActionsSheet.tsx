@@ -4,9 +4,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PrimaryButton } from "../../components/PrimaryButton";
 import { colors, minimumTouchTarget, radius, spacing, typeScale } from "../../theme/tokens";
 
-type Props = { visible: boolean; onClose(): void; onOpenTaxSettings?: () => void; onOpenPrinterSettings?: () => void; onOpenStaff?: () => void; onSignOut(): void };
+type Props = { visible: boolean; onClose(): void; onOpenStoreProfile?: () => void; onOpenTaxSettings?: () => void; onOpenPrinterSettings?: () => void; onOpenStaff?: () => void; onSignOut(): void };
 
-export function OwnerActionsSheet({ visible, onClose, onOpenTaxSettings, onOpenPrinterSettings, onOpenStaff, onSignOut }: Props) {
+export function OwnerActionsSheet({ visible, onClose, onOpenStoreProfile, onOpenTaxSettings, onOpenPrinterSettings, onOpenStaff, onSignOut }: Props) {
   const insets = useSafeAreaInsets();
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -16,6 +16,7 @@ export function OwnerActionsSheet({ visible, onClose, onOpenTaxSettings, onOpenP
           <View style={styles.handle} />
           <Text style={styles.title}>Store options</Text>
           <Text style={styles.subtitle}>Signed in as the owner</Text>
+          {onOpenStoreProfile && <PrimaryButton label="Store profile" accessibilityLabel="Edit store profile" onPress={onOpenStoreProfile} />}
           {onOpenStaff && <PrimaryButton label="Staff accounts" accessibilityLabel="Manage staff accounts" onPress={onOpenStaff} />}
           {onOpenTaxSettings && <PrimaryButton label="Tax settings" accessibilityLabel="Open tax settings" onPress={onOpenTaxSettings} />}
           {onOpenPrinterSettings && <PrimaryButton label="Printer settings" accessibilityLabel="Open printer settings" onPress={onOpenPrinterSettings} />}

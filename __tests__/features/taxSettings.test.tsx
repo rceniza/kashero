@@ -46,7 +46,7 @@ function setup() {
   const sales = new SalesService(salesRepository);
   database.prepare("INSERT INTO users (id, display_name, username, role, password_hash) VALUES (?, ?, ?, ?, ?)")
     .run(owner.id, owner.displayName, owner.username, owner.role, "hash");
-  return { database, settings, sales, productsRepository };
+  return { database, settings, sales, productsRepository, settingsRepository };
 }
 
 describe("store tax settings", () => {
@@ -82,6 +82,8 @@ describe("store tax settings", () => {
 
   it("requires the owner role and snapshots the current policy on each sale", async () => {
     const state = setup();
+    expect(await state.settingsRepository.getStoreName()).toBe("KASHERO");
+    await state.settingsRepository.saveStoreName("CENERE");
     await expect(state.settings.saveSettings("manager", "8.25", "inclusive")).rejects.toBeInstanceOf(TaxSettingsPermissionError);
     const category = await state.productsRepository.createCategory({ name: "Coffee" });
     const product = await state.productsRepository.createProduct({ categoryId: category.id, name: "Latte", description: "", defaultVariantName: "Regular", sku: null, barcode: null, priceInCentavos: 1250 });
@@ -92,15 +94,20 @@ describe("store tax settings", () => {
       .run("manager-1", "Store Manager", "manager", "manager", "hash");
 
     const noTaxSale = await state.sales.createPendingSale(owner.id, [{ variantId: product.variants[0].id, quantity: 1 }]);
-    expect(noTaxSale).toMatchObject({ taxInCentavos: 0, totalInCentavos: 1250 });
+    expect(noTaxSale).toMatchObject({ storeName: "CENERE", taxInCentavos: 0, totalInCentavos: 1250 });
     const originalNoTaxSnapshot = state.database.prepare("SELECT tax_rate_basis_points, tax_mode FROM sale_items WHERE sale_id = ?").get(noTaxSale.id);
     await state.settings.saveSettings("owner", "8.25", "exclusive");
+    await state.settingsRepository.saveStoreName("CHANGED STORE");
     const exclusiveSale = await state.sales.createPendingSale("cashier-2", [{ variantId: product.variants[0].id, quantity: 1 }]);
     await state.settings.saveSettings("owner", "8.25", "inclusive");
     const inclusiveSale = await state.sales.createPendingSale("manager-1", [{ variantId: product.variants[0].id, quantity: 1 }]);
 
     expect(exclusiveSale).toMatchObject({ subtotalInCentavos: 1250, taxInCentavos: 103, totalInCentavos: 1353, lines: [{ taxRateBasisPoints: 825, taxMode: "exclusive" }] });
     expect(inclusiveSale).toMatchObject({ subtotalInCentavos: 1155, taxInCentavos: 95, totalInCentavos: 1250, lines: [{ taxRateBasisPoints: 825, taxMode: "inclusive" }] });
+    expect(exclusiveSale.storeName).toBe("CHANGED STORE");
+    const historicalReceipts = await state.sales.listHistory();
+    expect(historicalReceipts.find(({ receipt }) => receipt.id === noTaxSale.id)?.receipt.storeName).toBe("CENERE");
+    expect(historicalReceipts.find(({ receipt }) => receipt.id === exclusiveSale.id)?.receipt.storeName).toBe("CHANGED STORE");
     expect(state.database.prepare("SELECT tax_rate_basis_points, tax_mode FROM sale_items WHERE sale_id = ?").get(exclusiveSale.id)).toMatchObject({ tax_rate_basis_points: 825, tax_mode: "exclusive" });
     expect(state.database.prepare("SELECT tax_rate_basis_points, tax_mode FROM sale_items WHERE sale_id = ?").get(inclusiveSale.id)).toMatchObject({ tax_rate_basis_points: 825, tax_mode: "inclusive" });
     expect(state.database.prepare("SELECT tax_rate_basis_points, tax_mode FROM sale_items WHERE sale_id = ?").get(noTaxSale.id)).toEqual(originalNoTaxSnapshot);

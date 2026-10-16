@@ -115,6 +115,7 @@ export const inventoryMovements = sqliteTable("inventory_movements", {
 
 export const storeSettings = sqliteTable("store_settings", {
   id: text("id").primaryKey().notNull(),
+  storeName: text("store_name").notNull().default("KASHERO"),
   taxRateBasisPoints: integer("tax_rate_basis_points"),
   taxMode: text("tax_mode", { enum: ["exclusive", "inclusive"] }).notNull().default("exclusive"),
   printerAddress: text("printer_address"),
@@ -123,6 +124,7 @@ export const storeSettings = sqliteTable("store_settings", {
   updatedAt: text("updated_at").notNull().default(utcSqlDefault),
 }, (table) => [
   check("store_settings_singleton_id", sql`${table.id} = 'store'`),
+  check("store_settings_name_check", sql`length(trim(${table.storeName})) between 1 and 30`),
   check("store_settings_tax_rate_check", sql`${table.taxRateBasisPoints} is null or (typeof(${table.taxRateBasisPoints}) = 'integer' and ${table.taxRateBasisPoints} between 0 and 10000)`),
   check("store_settings_tax_mode_check", sql`${table.taxMode} in ('exclusive', 'inclusive')`),
   check("store_settings_printer_width_check", sql`${table.printerPaperWidthMm} in (58, 80)`),
@@ -132,6 +134,7 @@ export const sales = sqliteTable("sales", {
   id: text("id").primaryKey().notNull(),
   receiptNumber: text("receipt_number").notNull(),
   userId: text("user_id").notNull().references(() => users.id, { onDelete: "restrict" }),
+  storeName: text("store_name").notNull().default("KASHERO"),
   status: text("status", { enum: ["pending_payment", "paid", "voided"] }).notNull().default("pending_payment"),
   subtotalInCentavos: integer("subtotal_in_centavos").notNull(),
   discountInCentavos: integer("discount_in_centavos").notNull().default(0),

@@ -26,7 +26,7 @@ export function formatReceipt(
   const divider = "-".repeat(dividerWidth);
   const amount = (value: number) => formatPrintAmount(value, options.currency ?? "PHP");
   const lines = [
-    center("KASHERO", width),
+    center(receipt.storeName || "KASHERO", width),
     center("SALES RECEIPT", width),
     divider,
     ...wrapLine(`Receipt: ${receipt.receiptNumber}`, width),

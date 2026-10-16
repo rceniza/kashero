@@ -6,6 +6,8 @@ export type StoreTaxSettings = {
 };
 
 export interface StoreSettingsRepository {
+  getStoreName(): Promise<string>;
+  saveStoreName(name: string): Promise<void>;
   getTaxSettings(): Promise<StoreTaxSettings>;
   saveTaxSettings(settings: StoreTaxSettings): Promise<void>;
 }

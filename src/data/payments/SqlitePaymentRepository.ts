@@ -14,6 +14,7 @@ interface SqlDatabase extends SqlExecutor {
 }
 type SaleRow = {
   id: string; receipt_number: string; user_id: string; status: "pending_payment" | "paid" | "voided";
+  store_name: string;
   subtotal_in_centavos: number; discount_in_centavos: number; tax_in_centavos: number;
   total_in_centavos: number; created_at: string;
 };
@@ -170,7 +171,7 @@ export class SqlitePaymentRepository implements PaymentRepository {
       taxMode: line.tax_mode, taxInCentavos: line.tax_in_centavos, lineTotalInCentavos: line.line_total_in_centavos,
     }));
     return {
-      id: sale.id, receiptNumber: sale.receipt_number, userId: sale.user_id, status: sale.status,
+      id: sale.id, receiptNumber: sale.receipt_number, storeName: sale.store_name, userId: sale.user_id, status: sale.status,
       createdAt: sale.created_at, subtotalInCentavos: sale.subtotal_in_centavos,
       discountInCentavos: sale.discount_in_centavos, taxInCentavos: sale.tax_in_centavos,
       totalInCentavos: sale.total_in_centavos, lines,

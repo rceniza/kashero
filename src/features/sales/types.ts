@@ -29,6 +29,7 @@ export type SaleTotals = {
 export type SaleReceipt = SaleTotals & {
   id: string;
   receiptNumber: string;
+  storeName: string;
   userId: string;
   status: SaleStatus;
   createdAt: string;

@@ -19,6 +19,7 @@ import { DiagnosticsService } from "../features/diagnostics/DiagnosticsService";
 import { SqliteDiagnosticRepository } from "../data/diagnostics/SqliteDiagnosticRepository";
 import { SqliteStoreSettingsRepository } from "../data/settings/SqliteStoreSettingsRepository";
 import { TaxSettingsService } from "../features/settings/TaxSettingsService";
+import { StoreProfileService } from "../features/settings/StoreProfileService";
 import { StaffService } from "../features/auth/StaffService";
 import { SqliteUserRepository } from "../data/users/SqliteUserRepository";
 import { SqlitePrinterSettingsRepository } from "../data/settings/SqlitePrinterSettingsRepository";
@@ -49,9 +50,14 @@ export default function IndexScreen() {
     () => new DiagnosticsService(new SqliteDiagnosticRepository(database)),
     [database],
   );
+  const storeSettingsRepository = useMemo(() => new SqliteStoreSettingsRepository(database), [database]);
   const taxSettingsService = useMemo(
-    () => new TaxSettingsService(new SqliteStoreSettingsRepository(database)),
-    [database],
+    () => new TaxSettingsService(storeSettingsRepository),
+    [storeSettingsRepository],
+  );
+  const storeProfileService = useMemo(
+    () => new StoreProfileService(storeSettingsRepository),
+    [storeSettingsRepository],
   );
   const staffService = useMemo(
     () => new StaffService(new SqliteUserRepository(database)),
@@ -110,5 +116,5 @@ export default function IndexScreen() {
   if (!user) return <AuthScreen key={needsSetup ? "setup" : "login"} />;
   if (!catalogReady) return <View style={{ flex: 1, justifyContent: "center", backgroundColor: colors.background }}><ActivityIndicator color={colors.accent} /></View>;
   if (catalogError) return <View style={{ flex: 1, justifyContent: "center", backgroundColor: colors.background, padding: 24 }}><Text style={{ color: colors.ink }}>Could not load the catalog. Please restart Kashero.</Text></View>;
-  return <PosScreen user={user} onLogout={logout} catalogItems={catalogItems} categoryNames={categoryNames} catalogService={catalogService} inventoryService={inventoryService} salesService={salesService} paymentService={paymentService} receiptPrintService={receiptPrintService} diagnosticsService={diagnosticsService} taxSettingsService={taxSettingsService} printerSettingsService={printerSettingsService} staffService={staffService} onCatalogChanged={refreshCatalog} />;
+  return <PosScreen user={user} onLogout={logout} catalogItems={catalogItems} categoryNames={categoryNames} catalogService={catalogService} inventoryService={inventoryService} salesService={salesService} paymentService={paymentService} receiptPrintService={receiptPrintService} diagnosticsService={diagnosticsService} storeProfileService={storeProfileService} taxSettingsService={taxSettingsService} printerSettingsService={printerSettingsService} staffService={staffService} onCatalogChanged={refreshCatalog} />;
 }

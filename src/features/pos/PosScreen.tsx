@@ -39,9 +39,11 @@ import type { DiagnosticsService } from "../diagnostics/DiagnosticsService";
 import { OwnerActionsSheet } from "../settings/OwnerActionsSheet";
 import { TaxSettingsScreen } from "../settings/TaxSettingsScreen";
 import { PrinterSettingsScreen } from "../settings/PrinterSettingsScreen";
+import { StoreProfileScreen } from "../settings/StoreProfileScreen";
 import { SaleHistoryScreen } from "../sales/SaleHistoryScreen";
 import type { TaxSettingsService } from "../settings/TaxSettingsService";
 import type { PrinterSettingsService } from "../settings/PrinterSettingsService";
+import type { StoreProfileService } from "../settings/StoreProfileService";
 import { StaffManagementScreen } from "../auth/StaffManagementScreen";
 import type { StaffService } from "../auth/StaffService";
 import {
@@ -65,6 +67,7 @@ type Props = {
   receiptPrintService?: ReceiptPrintService;
   diagnosticsService?: DiagnosticsService;
   taxSettingsService?: TaxSettingsService;
+  storeProfileService?: StoreProfileService;
   printerSettingsService?: PrinterSettingsService;
   staffService?: StaffService;
 };
@@ -83,6 +86,7 @@ export function PosScreen({
   receiptPrintService,
   diagnosticsService,
   taxSettingsService,
+  storeProfileService,
   printerSettingsService,
   staffService,
 }: Props) {
@@ -119,6 +123,7 @@ export function PosScreen({
   const [receiptHistoryOpen, setReceiptHistoryOpen] = useState(false);
   const [ownerActionsOpen, setOwnerActionsOpen] = useState(false);
   const [taxSettingsOpen, setTaxSettingsOpen] = useState(false);
+  const [storeProfileOpen, setStoreProfileOpen] = useState(false);
   const [printerSettingsOpen, setPrinterSettingsOpen] = useState(false);
   const [staffManagementOpen, setStaffManagementOpen] = useState(false);
   const items = catalogItems ?? catalog;
@@ -276,6 +281,9 @@ export function PosScreen({
   if (taxSettingsOpen && taxSettingsService && user) {
     return <TaxSettingsScreen service={taxSettingsService} user={user} onClose={() => setTaxSettingsOpen(false)} />;
   }
+  if (storeProfileOpen && storeProfileService && user) {
+    return <StoreProfileScreen service={storeProfileService} user={user} onClose={() => setStoreProfileOpen(false)} />;
+  }
   if (printerSettingsOpen && printerSettingsService && user) {
     return <PrinterSettingsScreen service={printerSettingsService} user={user} onClose={() => setPrinterSettingsOpen(false)} />;
   }
@@ -312,8 +320,8 @@ export function PosScreen({
             <View style={shellStyles.onlineDot} />
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={user?.role === "owner" && (taxSettingsService || staffService || printerSettingsService) ? "Account options" : "Sign out"}
-              onPress={() => user?.role === "owner" && (taxSettingsService || staffService || printerSettingsService) ? setOwnerActionsOpen(true) : onLogout?.()}
+              accessibilityLabel={user?.role === "owner" && (storeProfileService || taxSettingsService || staffService || printerSettingsService) ? "Account options" : "Sign out"}
+              onPress={() => user?.role === "owner" && (storeProfileService || taxSettingsService || staffService || printerSettingsService) ? setOwnerActionsOpen(true) : onLogout?.()}
             >
               <Text numberOfLines={1} style={[shellStyles.staffText, !tablet && { maxWidth: 76 }]}>{user ? `${user.displayName}${tablet ? ` · ${user.role}` : ""}` : "Alex · Cashier"}</Text>
             </Pressable>
@@ -331,10 +339,11 @@ export function PosScreen({
         />}
       </View>
 
-      {user?.role === "owner" && (taxSettingsService || staffService || printerSettingsService) && (
+      {user?.role === "owner" && (storeProfileService || taxSettingsService || staffService || printerSettingsService) && (
         <OwnerActionsSheet
           visible={ownerActionsOpen}
           onClose={() => setOwnerActionsOpen(false)}
+          onOpenStoreProfile={storeProfileService ? () => { setOwnerActionsOpen(false); setStoreProfileOpen(true); } : undefined}
           onOpenTaxSettings={taxSettingsService ? () => { setOwnerActionsOpen(false); setTaxSettingsOpen(true); } : undefined}
           onOpenPrinterSettings={printerSettingsService ? () => { setOwnerActionsOpen(false); setPrinterSettingsOpen(true); } : undefined}
           onOpenStaff={staffService ? () => { setOwnerActionsOpen(false); setStaffManagementOpen(true); } : undefined}

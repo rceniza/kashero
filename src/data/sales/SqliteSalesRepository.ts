@@ -22,6 +22,7 @@ type ProductRow = {
 };
 type HistorySaleRow = {
   id: string; receipt_number: string; user_id: string; status: SaleReceipt["status"];
+  store_name: string;
   subtotal_in_centavos: number; discount_in_centavos: number; tax_in_centavos: number;
   total_in_centavos: number; created_at: string; cashier_name: string;
 };
@@ -61,7 +62,7 @@ export class SqliteSalesRepository implements SalesRepository {
     return sales.map((sale) => ({
       cashierName: sale.cashier_name,
       receipt: {
-        id: sale.id, receiptNumber: sale.receipt_number, userId: sale.user_id, status: sale.status,
+        id: sale.id, receiptNumber: sale.receipt_number, storeName: sale.store_name, userId: sale.user_id, status: sale.status,
         createdAt: sale.created_at, subtotalInCentavos: sale.subtotal_in_centavos,
         discountInCentavos: sale.discount_in_centavos, taxInCentavos: sale.tax_in_centavos,
         totalInCentavos: sale.total_in_centavos,
@@ -90,7 +91,9 @@ export class SqliteSalesRepository implements SalesRepository {
       const taxSettings = await transaction.getFirstAsync<{
         tax_rate_basis_points: number | null;
         tax_mode: SaleTaxMode;
-      }>("SELECT tax_rate_basis_points, tax_mode FROM store_settings WHERE id = 'store'");
+        store_name: string;
+      }>("SELECT tax_rate_basis_points, tax_mode, store_name FROM store_settings WHERE id = 'store'");
+      const storeName = taxSettings?.store_name ?? "KASHERO";
       const pendingSale = await transaction.getFirstAsync<{ id: string }>(
         "SELECT id FROM sales WHERE user_id = ? AND status = 'pending_payment' LIMIT 1", userId,
       );
@@ -127,10 +130,10 @@ export class SqliteSalesRepository implements SalesRepository {
         taxSettings?.tax_mode ?? "exclusive",
       );
       await transaction.runAsync(
-        `INSERT INTO sales (id, receipt_number, user_id, status, subtotal_in_centavos,
+        `INSERT INTO sales (id, receipt_number, user_id, store_name, status, subtotal_in_centavos,
           discount_in_centavos, tax_in_centavos, total_in_centavos, created_at, updated_at)
-         VALUES (?, ?, ?, 'pending_payment', ?, ?, ?, ?, ?, ?)`,
-        saleId, receiptNumber, userId, totals.subtotalInCentavos, totals.discountInCentavos,
+         VALUES (?, ?, ?, ?, 'pending_payment', ?, ?, ?, ?, ?, ?)`,
+        saleId, receiptNumber, userId, storeName, totals.subtotalInCentavos, totals.discountInCentavos,
         totals.taxInCentavos, totals.totalInCentavos, createdAt, createdAt,
       );
 
@@ -159,7 +162,7 @@ export class SqliteSalesRepository implements SalesRepository {
           line.taxRateBasisPoints, line.taxMode, line.taxInCentavos, line.lineTotalInCentavos,
         );
       }
-      receipt = { ...totals, id: saleId, receiptNumber, userId, status: "pending_payment", createdAt };
+      receipt = { ...totals, id: saleId, receiptNumber, storeName, userId, status: "pending_payment", createdAt };
     });
 
     if (!receipt) throw new Error("Sale could not be recorded.");

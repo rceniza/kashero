@@ -8,8 +8,22 @@ import type { ProductCatalogService } from "../../src/features/catalog/ProductCa
 import type { InventoryService } from "../../src/features/inventory/InventoryService";
 import type { User } from "../../src/features/auth/UserRepository";
 import type { SalesService } from "../../src/features/sales/SalesService";
+import type { StoreProfileService } from "../../src/features/settings/StoreProfileService";
 
 describe("responsive POS shell", () => {
+  it("opens the owner store profile on a small screen", async () => {
+    const storeProfileService = { getStoreName: async () => "CENERE" } as StoreProfileService;
+    await render(<PosScreen
+      viewportWidth={320}
+      user={{ id: "owner-1", displayName: "Owner", username: "owner", role: "owner", isActive: true, createdAt: "now", updatedAt: "now" }}
+      storeProfileService={storeProfileService}
+    />);
+    await fireEvent.press(screen.getByRole("button", { name: "Account options" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Edit store profile" }));
+    expect(await screen.findByTestId("store-profile-screen")).toBeTruthy();
+    expect(await screen.findByDisplayValue("CENERE")).toBeTruthy();
+  });
+
   it("exposes product and order controls with accessible labels and 44pt touch targets", async () => {
     await render(<PosScreen viewportWidth={320} />);
     const addItem = screen.getByRole("button", { name: "Add Café latte" });

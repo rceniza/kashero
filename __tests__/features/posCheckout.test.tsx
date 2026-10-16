@@ -13,7 +13,7 @@ import type { DiagnosticsService } from "../../src/features/diagnostics/Diagnost
 const item: CatalogItem = { id: "variant-rice", productId: "rice", name: "Brown rice", detail: "5 kg bag", category: "Grocery", price: 125050, color: "#E8DDD2", symbol: "✳" };
 const user: User = { id: "staff-1", displayName: "Sam Cashier", username: "sam", role: "cashier", isActive: true, createdAt: "", updatedAt: "" };
 const receipt: SaleReceipt = {
-  id: "sale-1", receiptNumber: "K-20261005-0001", userId: user.id, status: "pending_payment", createdAt: "2026-10-05T00:00:00.000Z",
+  id: "sale-1", receiptNumber: "K-20261005-0001", storeName: "CENERE", userId: user.id, status: "pending_payment", createdAt: "2026-10-05T00:00:00.000Z",
   subtotalInCentavos: 250100, discountInCentavos: 0, taxInCentavos: 0, totalInCentavos: 250100,
   lines: [{ variantId: item.id, productName: item.name, variantName: item.detail, sku: null, quantity: 2, unitPriceInCentavos: item.price, discountInCentavos: 0, taxRateBasisPoints: null, taxMode: null, taxInCentavos: 0, lineTotalInCentavos: 250100 }],
 };
@@ -133,7 +133,7 @@ describe("POS checkout feature", () => {
 
     expect(screen.getByText("Receipt preview")).toBeTruthy();
     expect(screen.getByLabelText("Receipt contents")).toBeTruthy();
-    expect(screen.getByText("KASHERO")).toBeTruthy();
+    expect(screen.getByText("CENERE")).toBeTruthy();
     expect(screen.getByText("Tax added (8.25%)")).toBeTruthy();
     expect(screen.getAllByText("Brown rice · 5 kg bag")).toHaveLength(2);
     expect(screen.getByText("TOTAL")).toBeTruthy();
@@ -141,6 +141,6 @@ describe("POS checkout feature", () => {
     expect(await screen.findByText("Printer is not configured yet.")).toBeTruthy();
     expect(print).toHaveBeenCalledTimes(1);
     expect(print.mock.calls[0]?.[0]?.join("\n")).toContain("Change");
-    expect(print.mock.calls[0]?.[0]?.[0]?.trim()).toBe("KASHERO");
+    expect(print.mock.calls[0]?.[0]?.[0]?.trim()).toBe("CENERE");
   });
 });
