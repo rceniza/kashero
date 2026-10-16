@@ -38,7 +38,11 @@ describe("receipt print boundary", () => {
     expect(preview.some((line) => /^-+$/.test(line) && line.length === 40)).toBe(true);
     expect(printed.some((line) => /^-+$/.test(line) && line.length === 31)).toBe(true);
     expect(printed.every((line) => line.length <= 40)).toBe(true);
-    expect(printed.some((line) => line.includes("1x Tea - Cup"))).toBe(true);
+    expect(printed.some((line) => line.includes("Tea - Cup"))).toBe(true);
+    expect(printed.join("\n")).toContain("COST");
+    expect(printed.join("\n")).toContain("P1.00");
+    expect(printed.join("\n")).not.toContain("PHP ");
+    expect(preview.join("\n")).toContain("PHP 1.00");
   });
 
   it("does not send a pending sale to a printer", async () => {

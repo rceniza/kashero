@@ -42,10 +42,12 @@ describe("receipt history feature", () => {
     const printedLines = print.mock.calls[0]?.[0] ?? [];
     expect(printedLines.every((line) => line.length <= 40)).toBe(true);
     expect(printedLines.some((line) => /^-+$/.test(line) && line.length === 31)).toBe(true);
-    const itemTotalLine = printedLines.find((line) => line.includes("PHP 125.00"));
-    expect(itemTotalLine?.endsWith("PHP 125.00")).toBe(true);
+    const itemTotalLine = printedLines.find((line) => line.includes("P125.00"));
+    expect(itemTotalLine?.endsWith("P125.00")).toBe(true);
     expect(printedLines.join("\n")).toContain("Café latte");
     expect(printedLines.join("\n")).not.toContain("₱");
+    expect(printedLines.join("\n")).not.toContain("PHP ");
+    expect(printedLines.join("\n")).toContain("DESCRIPTION");
   });
 
   it("shows voided sales as reviewable records without offering reprint", async () => {
