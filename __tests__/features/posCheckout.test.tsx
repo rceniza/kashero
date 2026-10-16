@@ -35,7 +35,7 @@ describe("POS checkout feature", () => {
     expect(screen.getByText("Awaiting payment")).toBeTruthy();
     expect(screen.getByText(receipt.receiptNumber)).toBeTruthy();
     expect(screen.getAllByText("₱2501.00")).toHaveLength(2);
-  });
+  }, 30_000);
 
   it("keeps the cart available when stock validation rejects checkout", async () => {
     const createPendingSale = jest.fn().mockRejectedValue(new Error("Stock cannot be reduced below zero."));

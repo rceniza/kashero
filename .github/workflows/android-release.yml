@@ -1,0 +1,108 @@
+name: Android release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.13.0"
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.10"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android build packages
+        run: sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0" "ndk;27.1.12297006"
+
+      - name: Install JavaScript dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Verify release tag version
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          APP_VERSION="$(node -p "require('./app.json').expo.version")"
+          test "$VERSION" = "$APP_VERSION"
+
+      - name: Run automated checks
+        run: |
+          bun run check
+          bun run db:check
+
+      - name: Generate Android project
+        run: bunx expo prebuild --platform android --clean
+
+      - name: Restore Android update signing key
+        env:
+          ANDROID_DEBUG_KEYSTORE_BASE64: ${{ secrets.KASHERO_ANDROID_DEBUG_KEYSTORE_BASE64 }}
+        run: |
+          test -n "$ANDROID_DEBUG_KEYSTORE_BASE64"
+          printf '%s' "$ANDROID_DEBUG_KEYSTORE_BASE64" | base64 --decode > android/app/debug.keystore
+          chmod 600 android/app/debug.keystore
+
+      - name: Build ARM64 APK
+        run: cd android && ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a
+
+      - name: Verify and prepare release files
+        run: |
+          APK="android/app/build/outputs/apk/release/app-release.apk"
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs "$APK"
+          mkdir -p release-assets
+          cp "$APK" "release-assets/kashero-${GITHUB_REF_NAME#v}-android-arm64.apk"
+          cd release-assets
+          shasum -a 256 kashero-*-android-arm64.apk > SHA256SUMS.txt
+
+      - name: Publish GitHub prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          cat > release-notes.md <<EOF
+          Kashero ${VERSION} is an Android prerelease with the Bluetooth printer discovery timeout fix.
+
+          ## Android
+
+          - Download the ARM64 APK and install it on Android 11 (API 30) or later.
+          - This build keeps the existing app signing key so it can update the previous Kashero APK without uninstalling.
+          - In Kashero, open **Store options → Printer Settings → Find Bluetooth printers**. Printers already paired with Android should appear immediately; nearby discovery can take longer.
+          - Physical JK-5802H discovery, connection, and receipt printing still need verification on the target device.
+
+          ## iOS
+
+          TestFlight delivery is pending Apple Developer membership, App Store Connect access, and signing setup. No iOS install file is included.
+
+          ## Verification
+
+          - Automated tests, lint, TypeScript, and database schema checks passed in this workflow.
+          - APK signature verification passed. Install and Bluetooth behavior still need a physical Android device check.
+
+          See `SHA256SUMS.txt` for the APK checksum.
+          EOF
+          gh release create "$GITHUB_REF_NAME" \
+            --title "Kashero ${VERSION}" \
+            --notes-file release-notes.md \
+            --prerelease \
+            "release-assets/kashero-${VERSION}-android-arm64.apk" \
+            release-assets/SHA256SUMS.txt

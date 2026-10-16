@@ -11,10 +11,8 @@ jest.mock("react-native-quick-crypto", () => ({
     _digest: string,
     callback: (error: Error | null, key?: Uint8Array) => void,
   ) => {
-    const { pbkdf2Async } = require("@noble/hashes/pbkdf2.js");
-    const { sha256 } = require("@noble/hashes/sha2.js");
-    void pbkdf2Async(sha256, password, salt, { c: iterations, dkLen: keyLength })
-      .then((key: Uint8Array) => callback(null, key), callback);
+    const { pbkdf2: deriveKey } = require("node:crypto") as typeof import("node:crypto");
+    deriveKey(password, salt, iterations, keyLength, "sha256", (error, key) => callback(error, key));
   },
 }));
 
