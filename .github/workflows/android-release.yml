@@ -82,13 +82,14 @@ jobs:
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           cat > release-notes.md <<EOF
-          Kashero ${VERSION} is an Android prerelease with compact receipts sized for the printer's safe text width.
+          Kashero ${VERSION} is an Android prerelease with owner-configurable receipt branding.
 
           ## Android
 
           - Download the ARM64 APK and install it on Android 11 (API 30) or later.
           - This build keeps the existing app signing key so it can update the previous Kashero APK without uninstalling.
           - In Kashero, open **Store options → Printer Settings → Find Bluetooth printers**. Printers already paired with Android should appear immediately; nearby discovery can take longer. Select your printer and tap **Save printer**; a test receipt is optional.
+          - Owners can change the receipt brand from **Store options → Store profile**. New sales save the store name so reprints retain their original branding.
           - Reprints use printer-safe `P` amounts and the smallest built-in ESC/POS font (Font B, size 1) at the configured text width.
           - Sale items print in aligned `ITEM / QTY / DESCRIPTION / COST` columns; descriptions are clipped with an ellipsis instead of wrapping into the cost.
           - Printed dividers are nine characters shorter than the text width to fit printer margins; the on-screen preview is unchanged.
