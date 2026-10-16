@@ -34,7 +34,7 @@ export function formatReceipt(
     const labelWidth = width - total.length - 1;
     const labelLines = wrapLine(label, labelWidth);
     const finalLabelLine = labelLines.pop() ?? "";
-    lines.push(...labelLines, `${finalLabelLine} ${total}`);
+    lines.push(...labelLines, alignLine(finalLabelLine, total, width));
   }
 
   lines.push(divider);
@@ -101,6 +101,11 @@ function center(value: string, width: number): string {
 function alignColumns(label: string, value: string, width: number): string[] {
   if (label.length + value.length + 1 > width) return [...wrapLine(label, width), `${" ".repeat(Math.max(0, width - value.length))}${value}`];
   return [`${label}${" ".repeat(width - label.length - value.length)}${value}`];
+}
+
+function alignLine(label: string, value: string, width: number): string {
+  const left = label.slice(0, Math.max(0, width - value.length));
+  return `${left}${" ".repeat(Math.max(1, width - left.length - value.length))}${value}`;
 }
 
 function paymentMethodLabel(method: PaymentMethod): string {

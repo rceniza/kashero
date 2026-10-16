@@ -15,6 +15,15 @@ describe("receipt formatting", () => {
     expect(lines.join("\n")).toContain("TOTAL");
     expect(lines.join("\n")).toContain("PHP 26.01");
     expect(lines.join("\n")).toContain("Change");
+    expect(lines.find((line) => line.includes("PHP 26.01"))?.length).toBe(32);
+  });
+
+  it("right-aligns line totals without leaving the item label and price on separate lines", () => {
+    const lines = formatReceipt(receipt, { method: "cash" }, 32);
+    const totalLine = lines.find((line) => line.includes("PHP 26.01"));
+    expect(totalLine).toContain("cup");
+    expect(totalLine?.endsWith("PHP 26.01")).toBe(true);
+    expect(lines.every((line) => line.length <= 32)).toBe(true);
   });
 
   it("prints the terminal provider but masks approval codes and omits the terminal reference", () => {
@@ -51,8 +60,9 @@ describe("receipt formatting", () => {
     expect([...text].every((character) => character.charCodeAt(0) <= 127)).toBe(true);
     expect(text).toContain("PHP 26.01");
     const itemTotalLine = lines.find((line) => line.includes("PHP 26.01"));
-    expect(itemTotalLine).toBe("- Large cup PHP 26.01");
-    expect(lines[lines.indexOf(itemTotalLine ?? "") - 1]).toContain("2x Long name");
+    expect(itemTotalLine).toContain("Large cup");
+    expect(itemTotalLine?.endsWith("PHP 26.01")).toBe(true);
+    expect(lines.some((line) => line.includes("2x Long name"))).toBe(true);
     expect(lines.every((line) => line.trim().length > 0)).toBe(true);
     expect(text).not.toContain("₱");
   });
@@ -63,6 +73,7 @@ describe("receipt formatting", () => {
       lines: [{ ...receipt.lines[0], productName: "Tea", variantName: "Cup", quantity: 1 }],
     };
     const lines = formatReceipt(shortItem, { method: "cash" }, 40);
-    expect(lines).toContain("1x Tea - Cup PHP 26.01");
+    const itemLine = lines.find((line) => line.includes("PHP 26.01"));
+    expect(itemLine?.trimStart()).toMatch(/^1x Tea - Cup\s+PHP 26\.01$/);
   });
 });

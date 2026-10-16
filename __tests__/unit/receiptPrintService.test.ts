@@ -24,8 +24,20 @@ describe("receipt print boundary", () => {
     const wideReceipt = { ...receipt, lines: [{ ...receipt.lines[0], productName: "A".repeat(40) }] };
     const service = new ReceiptPrintService({ print, getReceiptWidth: async () => 48 } as ReceiptPrinter);
     await service.reprint(wideReceipt, { method: "cash" });
-    expect(printedLines.some((line) => line.length > 32)).toBe(true);
-    expect(printedLines.every((line) => line.length <= 48)).toBe(true);
+    expect(printedLines.every((line) => line.length <= 39)).toBe(true);
+    expect(printedLines.filter((line) => /^-+$/.test(line)).every((line) => line.length === 39)).toBe(true);
+    expect(printedLines.some((line) => line.length === 48)).toBe(false);
+  });
+
+  it("keeps the full-width receipt preview while reserving nine print columns", async () => {
+    const print = jest.fn(async (_lines: string[]) => ({ status: "printed" as const }));
+    const service = new ReceiptPrintService({ print, getReceiptWidth: async () => 40 } as ReceiptPrinter);
+    const preview = service.preview(receipt, { method: "cash" }, 40);
+    await service.reprint(receipt, { method: "cash" });
+    const printed = print.mock.calls[0][0];
+    expect(preview.some((line) => /^-+$/.test(line) && line.length === 40)).toBe(true);
+    expect(printed.some((line) => /^-+$/.test(line) && line.length === 31)).toBe(true);
+    expect(printed.every((line) => line.length <= 31)).toBe(true);
   });
 
   it("does not send a pending sale to a printer", async () => {
