@@ -6,14 +6,14 @@
     "name": "Kashero",
     "slug": "kashero",
     "scheme": "kashero",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
       "deploymentTarget": "16.4",
-      "buildNumber": "6",
+      "buildNumber": "7",
       "bundleIdentifier": "com.rceniza.kashero",
       "infoPlist": {
         "NSBluetoothAlwaysUsageDescription": "Kashero uses Bluetooth to find and print receipts with your store printer.",
@@ -22,7 +22,7 @@
     },
     "android": {
       "package": "com.rceniza.kashero",
-      "versionCode": 6,
+      "versionCode": 7,
       "permissions": [
         "android.permission.BLUETOOTH",
         "android.permission.BLUETOOTH_ADMIN",
