@@ -52,7 +52,7 @@ export class NativeBluetoothPrinterTransport implements BluetoothPrinterTranspor
     await requireBluetoothPermission();
     const result = await ThermalPrinter.printReceipt({
       printers: [{ address, options: { paperWidthMm, marginMm: 1, disableCutPaper: true } }],
-      documents: [lines.map((content) => ({ type: "text" as const, content }))],
+      documents: [lines.map((content) => ({ type: "text" as const, content, style: { font: "B" as const } }))],
     });
     if (!result.success) throw new Error("The printer did not complete the print job.");
   }

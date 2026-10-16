@@ -141,6 +141,6 @@ describe("POS checkout feature", () => {
     expect(await screen.findByText("Printer is not configured yet.")).toBeTruthy();
     expect(print).toHaveBeenCalledTimes(1);
     expect(print.mock.calls[0]?.[0]?.join("\n")).toContain("Change");
-    expect(print.mock.calls[0]?.[0]?.[0]).toBe("            KASHERO");
+    expect(print.mock.calls[0]?.[0]?.[0]?.trim()).toBe("KASHERO");
   });
 });

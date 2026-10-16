@@ -29,28 +29,32 @@ export function formatReceipt(
   ];
 
   for (const item of receipt.lines) {
-    const name = `${item.productName} · ${item.variantName}`;
+    const name = `${item.productName} - ${item.variantName}`;
     lines.push(...wrapLine(name, width - 10));
-    lines.push(...alignColumns(`${item.quantity} x ${formatPeso(item.unitPriceInCentavos)}`, formatPeso(item.lineTotalInCentavos), width));
+    lines.push(...alignColumns(`${item.quantity} x ${formatPrintAmount(item.unitPriceInCentavos)}`, formatPrintAmount(item.lineTotalInCentavos), width));
   }
 
   lines.push(divider);
-  lines.push(...alignColumns("Subtotal", formatPeso(receipt.subtotalInCentavos), width));
-  if (receipt.discountInCentavos > 0) lines.push(...alignColumns("Discount", `-${formatPeso(receipt.discountInCentavos)}`, width));
-  if (receipt.taxInCentavos > 0) lines.push(...alignColumns(getTaxLabel(receipt), formatPeso(receipt.taxInCentavos), width));
-  lines.push(...alignColumns("TOTAL", formatPeso(receipt.totalInCentavos), width));
+  lines.push(...alignColumns("Subtotal", formatPrintAmount(receipt.subtotalInCentavos), width));
+  if (receipt.discountInCentavos > 0) lines.push(...alignColumns("Discount", `-${formatPrintAmount(receipt.discountInCentavos)}`, width));
+  if (receipt.taxInCentavos > 0) lines.push(...alignColumns(getTaxLabel(receipt), formatPrintAmount(receipt.taxInCentavos), width));
+  lines.push(...alignColumns("TOTAL", formatPrintAmount(receipt.totalInCentavos), width));
   lines.push(divider);
   lines.push(...wrapLine(`Payment: ${paymentMethodLabel(payment.method)}`, width));
 
   if (payment.method === "cash") {
-    if (payment.tenderedInCentavos !== undefined) lines.push(...alignColumns("Cash", formatPeso(payment.tenderedInCentavos), width));
-    if (payment.changeInCentavos !== undefined) lines.push(...alignColumns("Change", formatPeso(payment.changeInCentavos), width));
+    if (payment.tenderedInCentavos !== undefined) lines.push(...alignColumns("Cash", formatPrintAmount(payment.tenderedInCentavos), width));
+    if (payment.changeInCentavos !== undefined) lines.push(...alignColumns("Change", formatPrintAmount(payment.changeInCentavos), width));
   } else if (payment.approvalCode?.trim()) {
     lines.push(...wrapLine(`Approval: ${maskApprovalCode(payment.approvalCode)}`, width));
   }
 
   lines.push(divider, center("Thank you!", width));
   return lines;
+}
+
+function formatPrintAmount(amountInCentavos: number): string {
+  return formatPeso(amountInCentavos).replace("₱", "PHP ");
 }
 
 export function getTaxLabel(receipt: SaleReceipt): string {

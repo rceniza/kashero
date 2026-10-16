@@ -21,7 +21,7 @@ const entry: SaleHistoryEntry = {
 describe("receipt history feature", () => {
   it("searches and opens a previous receipt on a narrow phone while masking approval data", async () => {
     const service = { listHistory: jest.fn(async () => [entry]) } as unknown as SalesService;
-    const print = jest.fn(async () => ({ status: "printed" as const }));
+    const print = jest.fn(async (_lines: string[]) => ({ status: "printed" as const }));
     const printService = new ReceiptPrintService({ print } as ReceiptPrinter);
     await render(<SaleHistoryScreen service={service} printService={printService} onClose={jest.fn()} />);
 
@@ -39,6 +39,10 @@ describe("receipt history feature", () => {
     expect(screen.getByText(/Approval:.*81/)).toBeTruthy();
     await fireEvent.press(screen.getByRole("button", { name: "Reprint receipt" }));
     await waitFor(() => expect(print).toHaveBeenCalledTimes(1));
+    const printedLines = print.mock.calls[0]?.[0] ?? [];
+    expect(printedLines.every((line) => line.length <= 40)).toBe(true);
+    expect(printedLines.join("\n")).toContain("PHP 125.00");
+    expect(printedLines.join("\n")).not.toContain("₱");
   });
 
   it("shows voided sales as reviewable records without offering reprint", async () => {

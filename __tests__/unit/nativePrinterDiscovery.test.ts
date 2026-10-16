@@ -6,6 +6,7 @@ jest.mock("@finan-me/react-native-thermal-printer", () => ({
   ThermalPrinter: {
     EVENT_DEVICE_ALREADY_PAIRED: "EVENT_DEVICE_ALREADY_PAIRED",
     EVENT_DEVICE_DISCOVER_DONE: "EVENT_DEVICE_DISCOVER_DONE",
+    printReceipt: jest.fn(async () => ({ success: true })),
     addDiscoveryEventListener: jest.fn(),
     scanDevices: jest.fn(async () => ({ success: true })),
     stopScanDevices: jest.fn(async () => true),
@@ -27,6 +28,15 @@ describe("native printer discovery payloads", () => {
       paired: [{ address: "AA:BB", name: "  " }, { name: "Missing address" }],
       found: "not-json",
     }, "android")).toEqual([{ address: "bt:AA:BB", name: "Bluetooth printer" }]);
+  });
+
+  it("sends compact Font B text for better 58 mm receipt fit", async () => {
+    const transport = new NativeBluetoothPrinterTransport();
+    await transport.print("bt:AA:BB:CC", 58, ["TOTAL                   PHP 26.01"]);
+    expect(ThermalPrinter.printReceipt).toHaveBeenCalledWith(expect.objectContaining({
+      printers: [{ address: "bt:AA:BB:CC", options: { paperWidthMm: 58, marginMm: 1, disableCutPaper: true } }],
+      documents: [[{ type: "text", content: "TOTAL                   PHP 26.01", style: { font: "B" } }]],
+    }));
   });
 
   it("returns an already-paired Android printer immediately and cleans up listeners", async () => {

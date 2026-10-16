@@ -9,7 +9,7 @@ export interface ReceiptPrinter {
 }
 
 export class ReceiptPrintService {
-  constructor(private readonly printer: ReceiptPrinter, private readonly width = 32) {}
+  constructor(private readonly printer: ReceiptPrinter, private readonly width = 40) {}
 
   preview(receipt: SaleReceipt, payment: ReceiptPaymentDetails, width = this.width): string[] {
     return formatReceipt(receipt, payment, width);

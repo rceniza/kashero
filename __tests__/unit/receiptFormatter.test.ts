@@ -13,7 +13,7 @@ describe("receipt formatting", () => {
     const lines = formatReceipt(receipt, { method: "cash", tenderedInCentavos: 3000, changeInCentavos: 399 }, 32);
     expect(lines.every((line) => line.length <= 32)).toBe(true);
     expect(lines.join("\n")).toContain("TOTAL");
-    expect(lines.join("\n")).toContain("₱26.01");
+    expect(lines.join("\n")).toContain("PHP 26.01");
     expect(lines.join("\n")).toContain("Change");
   });
 
@@ -39,7 +39,18 @@ describe("receipt formatting", () => {
   });
 
   it("supports multiple widths and rejects unsupported widths", () => {
-    expect(formatReceipt(receipt, { method: "metrobank_terminal" }, 42).every((line) => line.length <= 42)).toBe(true);
+    const wideLines = formatReceipt(receipt, { method: "metrobank_terminal" }, 48);
+    expect(wideLines.every((line) => line.length <= 48)).toBe(true);
     expect(() => formatReceipt(receipt, { method: "cash" }, 15)).toThrow("between 16 and 80");
+  });
+
+  it("formats printer-safe ASCII lines that fit a compact-font 58 mm receipt", () => {
+    const lines = formatReceipt(receipt, { method: "cash", tenderedInCentavos: 3000, changeInCentavos: 399 }, 40);
+    const text = lines.join("\n");
+    expect(lines.every((line) => line.length <= 40)).toBe(true);
+    expect([...text].every((character) => character.charCodeAt(0) <= 127)).toBe(true);
+    expect(text).toContain("PHP 26.01");
+    expect(text).toContain("2 x PHP 14.00");
+    expect(text).not.toContain("₱");
   });
 });
