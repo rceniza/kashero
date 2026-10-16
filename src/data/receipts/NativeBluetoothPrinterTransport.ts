@@ -5,24 +5,35 @@ import type { BluetoothPrinterTransport } from "../../features/settings/PrinterS
 import type { PrinterDevice, PrinterPaperWidth } from "../../features/settings/PrinterSettingsRepository";
 import { normalizeDevices } from "./printerDiscovery";
 
+const DISCOVERY_TIMEOUT_MS = 30_000;
+
 export class NativeBluetoothPrinterTransport implements BluetoothPrinterTransport {
   async discover(): Promise<PrinterDevice[]> {
     await requireBluetoothPermission();
     return new Promise((resolve, reject) => {
       let settled = false;
-      const subscription = ThermalPrinter.addDiscoveryEventListener(
+      const subscriptions = [ThermalPrinter.addDiscoveryEventListener(
+        ThermalPrinter.EVENT_DEVICE_ALREADY_PAIRED,
+        (result) => {
+          const devices = normalizeDevices({ devices: result.devices }, Platform.OS);
+          if (devices.length > 0) {
+            void ThermalPrinter.stopScanDevices();
+            finish(() => resolve(devices));
+          }
+        },
+      ), ThermalPrinter.addDiscoveryEventListener(
         ThermalPrinter.EVENT_DEVICE_DISCOVER_DONE,
         (result) => finish(() => resolve(normalizeDevices(result, Platform.OS))),
-      );
+      )];
       const timer = setTimeout(() => {
         void ThermalPrinter.stopScanDevices();
         finish(() => reject(new Error("Bluetooth search timed out. Try scanning again.")));
-      }, 12_000);
+      }, DISCOVERY_TIMEOUT_MS);
       function finish(action: () => void) {
         if (settled) return;
         settled = true;
         clearTimeout(timer);
-        subscription.remove();
+        subscriptions.forEach((subscription) => subscription.remove());
         action();
       }
       ThermalPrinter.scanDevices().then((result) => {

@@ -64,6 +64,18 @@ describe("printer settings feature", () => {
     state.database.close();
   });
 
+  it("shows the Android Bluetooth name returned by discovery", async () => {
+    const state = setup();
+    state.transport.discover.mockResolvedValueOnce([
+      { address: "bt:AA:BB:CC", name: "KPrinter_7ff4" },
+    ]);
+    await render(<PrinterSettingsScreen service={state.service} user={owner} onClose={jest.fn()} />);
+    await fireEvent.press(screen.getByRole("button", { name: "Find Bluetooth printers" }));
+
+    expect(await screen.findByRole("radio", { name: "Select KPrinter_7ff4" })).toBeTruthy();
+    state.database.close();
+  });
+
   it("shows an empty-device recovery message and disconnects the saved printer", async () => {
     const state = setup();
     await state.service.save("owner", { address: "jk-5802h-id", name: "JK-5802H", paperWidthMm: 58 });

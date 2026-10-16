@@ -3,10 +3,10 @@ import type { PrinterDevice } from "../../features/settings/PrinterSettingsRepos
 type DiscoveredDevice = { address: string; name?: string; deviceType?: "bt" | "ble" | "dual" | "unknown" };
 
 export function normalizeDevices(
-  result: { paired?: unknown; found?: unknown },
+  result: { devices?: unknown; paired?: unknown; found?: unknown },
   platform: string,
 ): PrinterDevice[] {
-  const devices = [...decodeDevices(result.paired), ...decodeDevices(result.found)];
+  const devices = [...decodeDevices(result.devices), ...decodeDevices(result.paired), ...decodeDevices(result.found)];
   const unique = new Map<string, PrinterDevice>();
   for (const device of devices) {
     if (!device.address) continue;
