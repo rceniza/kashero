@@ -64,6 +64,22 @@ describe("printer settings feature", () => {
     state.database.close();
   });
 
+  it("allows saving a selected printer without requiring a successful test print", async () => {
+    const state = setup();
+    await render(<PrinterSettingsScreen service={state.service} user={owner} onClose={jest.fn()} />);
+    await fireEvent.press(screen.getByRole("button", { name: "Find Bluetooth printers" }));
+    await fireEvent.press(await screen.findByRole("radio", { name: "Select JK-5802H" }));
+
+    const saveButton = screen.getByRole("button", { name: "Save printer" });
+    expect(saveButton.props.accessibilityState?.disabled).not.toBe(true);
+    expect(screen.getByText("You can save this printer now. Printing a test receipt first is optional.")).toBeTruthy();
+    await fireEvent.press(saveButton);
+
+    await waitFor(() => expect(screen.getByText("Printer settings saved.")).toBeTruthy());
+    await expect(state.repository.getPrinterPreferences()).resolves.toEqual({ address: "jk-5802h-id", name: "JK-5802H", paperWidthMm: 58 });
+    state.database.close();
+  });
+
   it("shows the Android Bluetooth name returned by discovery", async () => {
     const state = setup();
     state.transport.discover.mockResolvedValueOnce([

@@ -19,7 +19,6 @@ export function PrinterSettingsScreen({ service, user, onClose }: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
-  const [testPassedFor, setTestPassedFor] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -54,7 +53,6 @@ export function PrinterSettingsScreen({ service, user, onClose }: Props) {
 
   function selectDevice(device: PrinterDevice) {
     setSelected({ ...device, paperWidthMm: selected?.paperWidthMm ?? 58 });
-    setTestPassedFor("");
     setError("");
     setMessage("");
   }
@@ -62,11 +60,8 @@ export function PrinterSettingsScreen({ service, user, onClose }: Props) {
   function chooseWidth(paperWidthMm: PrinterPaperWidth) {
     if (!selected) return;
     setSelected({ ...selected, paperWidthMm });
-    setTestPassedFor("");
     setMessage("");
   }
-
-  const fingerprint = selected ? `${selected.address}:${selected.paperWidthMm}` : "";
 
   async function testPrint() {
     if (!selected || printing) return;
@@ -75,10 +70,8 @@ export function PrinterSettingsScreen({ service, user, onClose }: Props) {
     setMessage("");
     try {
       await service.testPrint(user.role, selected);
-      setTestPassedFor(fingerprint);
       setMessage("Test receipt sent. Check the printout before saving.");
     } catch (cause) {
-      setTestPassedFor("");
       setError(cause instanceof Error ? cause.message : "Could not print the test receipt.");
     } finally {
       setPrinting(false);
@@ -87,10 +80,6 @@ export function PrinterSettingsScreen({ service, user, onClose }: Props) {
 
   async function save() {
     if (saving || (!selected && !saved)) return;
-    if (selected && testPassedFor !== fingerprint) {
-      setError("Print a test receipt before saving this printer.");
-      return;
-    }
     setSaving(true);
     setError("");
     setMessage("");
@@ -180,11 +169,12 @@ export function PrinterSettingsScreen({ service, user, onClose }: Props) {
           </View>
           {selected.name.toLowerCase().includes("jk-5802h") && <Text style={styles.helper}>JK-5802H uses 58 mm receipt paper.</Text>}
           <PrimaryButton label={printing ? "Printing…" : "Print test receipt"} accessibilityLabel="Print test receipt" onPress={() => void testPrint()} disabled={printing || saving} />
+          <Text style={styles.helper}>You can save this printer now. Printing a test receipt first is optional.</Text>
         </>}
 
         {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
         {message ? <Text accessibilityLiveRegion="polite" style={styles.success}>{message}</Text> : null}
-        {selected && <PrimaryButton label={saving ? "Saving…" : "Save printer"} onPress={() => void save()} disabled={saving || printing || testPassedFor !== fingerprint} />}
+        {selected && <PrimaryButton label={saving ? "Saving…" : "Save printer"} onPress={() => void save()} disabled={saving || printing} />}
         {saved && <Pressable accessibilityRole="button" disabled={saving} onPress={() => void disconnect()} style={styles.disconnect}>
           <Text style={styles.disconnectText}>Disconnect printer</Text>
         </Pressable>}
