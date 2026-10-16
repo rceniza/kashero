@@ -18,8 +18,7 @@ export class ReceiptPrintService {
   async reprint(receipt: SaleReceipt, payment: ReceiptPaymentDetails): Promise<ReceiptPrintResult> {
     if (receipt.status !== "paid") throw new Error("Only completed sales can be printed.");
     const width = await this.printer.getReceiptWidth?.() ?? this.width;
-    // The printer's usable line is narrower than the formatter's nominal width.
-    // Keep the on-screen preview at full width and reserve nine characters for print margins.
-    return this.printer.print(formatReceipt(receipt, payment, Math.max(16, width - 9)));
+    // Font B supports the full configured text width; only dividers need the printer margin allowance.
+    return this.printer.print(formatReceipt(receipt, payment, width, { dividerWidth: Math.max(16, width - 9) }));
   }
 }

@@ -13,12 +13,17 @@ export function formatReceipt(
   receipt: SaleReceipt,
   payment: ReceiptPaymentDetails,
   width = 32,
+  options: { dividerWidth?: number } = {},
 ): string[] {
   if (!Number.isSafeInteger(width) || width < 16 || width > 80) {
     throw new Error("Receipt width must be a whole number between 16 and 80 characters.");
   }
 
-  const divider = "-".repeat(width);
+  const dividerWidth = options.dividerWidth ?? width;
+  if (!Number.isSafeInteger(dividerWidth) || dividerWidth < 1 || dividerWidth > width) {
+    throw new Error("Receipt divider width must be a whole number between 1 and the receipt width.");
+  }
+  const divider = "-".repeat(dividerWidth);
   const lines = [
     center("KASHERO", width),
     center("SALES RECEIPT", width),

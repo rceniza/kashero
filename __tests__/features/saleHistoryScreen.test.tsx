@@ -40,7 +40,8 @@ describe("receipt history feature", () => {
     await fireEvent.press(screen.getByRole("button", { name: "Reprint receipt" }));
     await waitFor(() => expect(print).toHaveBeenCalledTimes(1));
     const printedLines = print.mock.calls[0]?.[0] ?? [];
-    expect(printedLines.every((line) => line.length <= 31)).toBe(true);
+    expect(printedLines.every((line) => line.length <= 40)).toBe(true);
+    expect(printedLines.some((line) => /^-+$/.test(line) && line.length === 31)).toBe(true);
     const itemTotalLine = printedLines.find((line) => line.includes("PHP 125.00"));
     expect(itemTotalLine?.endsWith("PHP 125.00")).toBe(true);
     expect(printedLines.join("\n")).toContain("Café latte");

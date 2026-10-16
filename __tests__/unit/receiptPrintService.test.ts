@@ -24,9 +24,9 @@ describe("receipt print boundary", () => {
     const wideReceipt = { ...receipt, lines: [{ ...receipt.lines[0], productName: "A".repeat(40) }] };
     const service = new ReceiptPrintService({ print, getReceiptWidth: async () => 48 } as ReceiptPrinter);
     await service.reprint(wideReceipt, { method: "cash" });
-    expect(printedLines.every((line) => line.length <= 39)).toBe(true);
+    expect(printedLines.every((line) => line.length <= 48)).toBe(true);
     expect(printedLines.filter((line) => /^-+$/.test(line)).every((line) => line.length === 39)).toBe(true);
-    expect(printedLines.some((line) => line.length === 48)).toBe(false);
+    expect(printedLines.some((line) => line.length === 48)).toBe(true);
   });
 
   it("keeps the full-width receipt preview while reserving nine print columns", async () => {
@@ -37,7 +37,8 @@ describe("receipt print boundary", () => {
     const printed = print.mock.calls[0][0];
     expect(preview.some((line) => /^-+$/.test(line) && line.length === 40)).toBe(true);
     expect(printed.some((line) => /^-+$/.test(line) && line.length === 31)).toBe(true);
-    expect(printed.every((line) => line.length <= 31)).toBe(true);
+    expect(printed.every((line) => line.length <= 40)).toBe(true);
+    expect(printed.some((line) => line.includes("1x Tea - Cup"))).toBe(true);
   });
 
   it("does not send a pending sale to a printer", async () => {
