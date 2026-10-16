@@ -9,6 +9,19 @@ export type ReceiptPaymentDetails = {
   changeInCentavos?: number;
 };
 
+export function formatReceiptDate(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const year = date.getFullYear();
+  const hour = date.getHours() % 12 || 12;
+  const minute = String(date.getMinutes()).padStart(2, "0");
+  const period = date.getHours() < 12 ? "AM" : "PM";
+  return `${month}-${day}-${year} ${hour}:${minute} ${period}`;
+}
+
 export function formatReceipt(
   receipt: SaleReceipt,
   payment: ReceiptPaymentDetails,
@@ -30,7 +43,7 @@ export function formatReceipt(
     center("SALES RECEIPT", width),
     divider,
     ...wrapLine(`Receipt: ${receipt.receiptNumber}`, width),
-    ...wrapLine(`Date: ${receipt.createdAt}`, width),
+    ...wrapLine(`Date: ${formatReceiptDate(receipt.createdAt)}`, width),
     divider,
   ];
 

@@ -6,7 +6,7 @@ import { orderStyles } from "../pos/order.styles";
 import type { SaleReceipt } from "../sales/types";
 import type { CashPaymentResult } from "../payments/types";
 import type { ReceiptPrintService } from "./ReceiptPrintService";
-import { getTaxLabel, maskApprovalCode, type ReceiptPaymentDetails } from "./receiptFormatter";
+import { formatReceiptDate, getTaxLabel, maskApprovalCode, type ReceiptPaymentDetails } from "./receiptFormatter";
 
 export function ReceiptPreview({
   receipt, payment, printService, onClose, allowReprint = true,
@@ -43,7 +43,7 @@ export function ReceiptPreview({
             <Text style={orderStyles.receiptHeading}>SALES RECEIPT</Text>
             <View style={orderStyles.receiptDivider} />
             <Text style={orderStyles.receiptMeta}>Receipt: {receipt.receiptNumber}</Text>
-            <Text style={orderStyles.receiptMeta}>Date: {receipt.createdAt}</Text>
+            <Text style={orderStyles.receiptMeta}>Date: {formatReceiptDate(receipt.createdAt)}</Text>
             <View style={orderStyles.receiptDivider} />
             {receipt.lines.map((line) => <View key={line.variantId} style={orderStyles.receiptItem}>
               <Text style={orderStyles.receiptItemName}>{line.productName} · {line.variantName}</Text>

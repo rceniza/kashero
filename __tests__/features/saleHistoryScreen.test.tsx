@@ -4,6 +4,7 @@ import { SaleHistoryScreen } from "../../src/features/sales/SaleHistoryScreen";
 import type { SalesService } from "../../src/features/sales/SalesService";
 import type { SaleHistoryEntry } from "../../src/features/sales/types";
 import { ReceiptPrintService, type ReceiptPrinter } from "../../src/features/receipts/ReceiptPrintService";
+import { formatReceiptDate } from "../../src/features/receipts/receiptFormatter";
 
 const entry: SaleHistoryEntry = {
   cashierName: "Sam Cashier",
@@ -34,6 +35,7 @@ describe("receipt history feature", () => {
     expect(screen.getByText("1 receipt")).toBeTruthy();
     await fireEvent.press(screen.getByRole("button", { name: "View receipt K-20261010-0001" }));
     expect(screen.getByText("Receipt preview")).toBeTruthy();
+    expect(screen.getByText(`Date: ${formatReceiptDate(entry.receipt.createdAt)}`)).toBeTruthy();
     expect(screen.getByText("CENERE")).toBeTruthy();
     expect(screen.getByLabelText("Receipt contents")).toBeTruthy();
     expect(screen.getByText("Café latte · Regular")).toBeTruthy();
@@ -50,6 +52,8 @@ describe("receipt history feature", () => {
     expect(printedLines.join("\n")).not.toContain("PHP ");
     expect(printedLines.join("\n")).toContain("DESCRIPTION");
     expect(printedLines[0]?.trim()).toBe("CENERE");
+    expect(printedLines.join("\n")).toContain(`Date: ${formatReceiptDate(entry.receipt.createdAt)}`);
+    expect(printedLines.join("\n")).not.toContain(entry.receipt.createdAt);
   });
 
   it("shows voided sales as reviewable records without offering reprint", async () => {

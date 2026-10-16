@@ -1,4 +1,4 @@
-import { formatReceipt, maskApprovalCode, wrapLine } from "../../src/features/receipts/receiptFormatter";
+import { formatReceipt, formatReceiptDate, maskApprovalCode, wrapLine } from "../../src/features/receipts/receiptFormatter";
 import type { SaleReceipt } from "../../src/features/sales/types";
 
 const receipt: SaleReceipt = {
@@ -8,6 +8,23 @@ const receipt: SaleReceipt = {
 };
 
 describe("receipt formatting", () => {
+  it("formats local receipt dates as month-day-year with a 12-hour time", () => {
+    const afternoon = new Date(2026, 9, 5, 15, 7).toISOString();
+    const midnight = new Date(2026, 9, 5, 0, 4).toISOString();
+    const noon = new Date(2026, 9, 5, 12, 0).toISOString();
+
+    expect(formatReceiptDate(afternoon)).toBe("10-05-2026 3:07 PM");
+    expect(formatReceiptDate(midnight)).toBe("10-05-2026 12:04 AM");
+    expect(formatReceiptDate(noon)).toBe("10-05-2026 12:00 PM");
+    expect(formatReceiptDate("invalid date")).toBe("invalid date");
+  });
+
+  it("uses the readable date in the printed receipt", () => {
+    const lines = formatReceipt(receipt, { method: "cash" });
+    expect(lines.join("\n")).toContain(`Date: ${formatReceiptDate(receipt.createdAt)}`);
+    expect(lines.join("\n")).not.toContain(receipt.createdAt);
+  });
+
   it("wraps long text and keeps formatted lines inside the selected paper width", () => {
     expect(wrapLine("An extraordinarilylongproductname wraps safely", 12)).toEqual(["An", "extraordinar", "ilylongprodu", "ctname", "wraps safely"]);
     const lines = formatReceipt(receipt, { method: "cash", tenderedInCentavos: 3000, changeInCentavos: 399 }, 32);
