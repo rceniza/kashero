@@ -54,11 +54,11 @@ describe("printer settings service", () => {
     await expect(service.print(["Receipt"])).resolves.toMatchObject({ status: "unavailable" });
   });
 
-  it("selects compact-font widths for 58 mm and 80 mm paper with printer margins", async () => {
+  it("selects conservative printable widths for 58 mm and 80 mm paper", async () => {
     const { service } = setup();
     await service.save("owner", preferences);
-    await expect(service.getReceiptWidth()).resolves.toBe(40);
+    await expect(service.getReceiptWidth()).resolves.toBe(31);
     await service.save("owner", { ...preferences, paperWidthMm: 80 });
-    await expect(service.getReceiptWidth()).resolves.toBe(62);
+    await expect(service.getReceiptWidth()).resolves.toBe(46);
   });
 });

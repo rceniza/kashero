@@ -76,4 +76,19 @@ describe("receipt formatting", () => {
     const itemLine = lines.find((line) => line.includes("PHP 26.01"));
     expect(itemLine?.trimStart()).toMatch(/^1x Tea - Cup\s+PHP 26\.01$/);
   });
+
+  it("keeps printer table rows within physical width and clips long descriptions", () => {
+    const lines = formatReceipt(receipt, { method: "cash" }, 31, {
+      dividerWidth: 31,
+      itemTable: true,
+      currency: "P",
+    });
+    const itemRow = lines.find((line) => line.includes("P26.01"));
+    expect(lines.some((line) => line.includes("DESCRIPTION"))).toBe(true);
+    expect(itemRow).toHaveLength(31);
+    expect(itemRow).toContain("...");
+    expect(itemRow).toContain("P26.01");
+    expect(itemRow).not.toContain("Large cup");
+    expect(lines.every((line) => line.length <= 31)).toBe(true);
+  });
 });

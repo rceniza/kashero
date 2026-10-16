@@ -21,7 +21,7 @@ export class PrinterSettingsService implements ReceiptPrinter {
 
   async getReceiptWidth(): Promise<number> {
     const preferences = await this.repository.getPrinterPreferences();
-    return preferences?.paperWidthMm === 80 ? 62 : 40;
+    return preferences?.paperWidthMm === 80 ? 46 : 31;
   }
 
   async discover(role: UserRole): Promise<PrinterDevice[]> {

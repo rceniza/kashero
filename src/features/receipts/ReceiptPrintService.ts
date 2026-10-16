@@ -17,10 +17,11 @@ export class ReceiptPrintService {
 
   async reprint(receipt: SaleReceipt, payment: ReceiptPaymentDetails): Promise<ReceiptPrintResult> {
     if (receipt.status !== "paid") throw new Error("Only completed sales can be printed.");
-    const width = await this.printer.getReceiptWidth?.() ?? this.width;
-    // Use a compact item table and short dividers for printing; the on-screen preview remains unchanged.
-    return this.printer.print(formatReceipt(receipt, payment, width, {
-      dividerWidth: Math.max(16, width - 9),
+    const configuredWidth = await this.printer.getReceiptWidth?.();
+    // getReceiptWidth reports the tested safe text width; otherwise reserve physical margins.
+    const printableWidth = Math.max(16, configuredWidth ?? this.width - 9);
+    return this.printer.print(formatReceipt(receipt, payment, printableWidth, {
+      dividerWidth: printableWidth,
       itemTable: true,
       currency: "P",
     }));

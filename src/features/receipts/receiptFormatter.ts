@@ -86,13 +86,18 @@ function formatItemTable(receipt: SaleReceipt, width: number, amount: (value: nu
   receipt.lines.forEach((item, index) => {
     const itemCode = (item.sku?.trim() || String(index + 1)).slice(0, itemWidth).padEnd(itemWidth);
     const quantity = String(item.quantity).padStart(quantityWidth);
-    const descriptionLines = wrapLine(`${item.productName} - ${item.variantName}`, descriptionWidth);
+    const description = truncateCell(`${item.productName} - ${item.variantName}`, descriptionWidth);
     const cost = amount(item.lineTotalInCentavos).padStart(costWidth);
-    descriptionLines.forEach((description, lineIndex) => {
-      rows.push(`${lineIndex === 0 ? itemCode : " ".repeat(itemWidth)} ${lineIndex === 0 ? quantity : " ".repeat(quantityWidth)} ${description.padEnd(descriptionWidth)} ${lineIndex === descriptionLines.length - 1 ? cost : " ".repeat(costWidth)}`);
-    });
+    rows.push(`${itemCode} ${quantity} ${description.padEnd(descriptionWidth)} ${cost}`);
   });
   return rows;
+}
+
+function truncateCell(value: string, width: number): string {
+  const text = value.trim();
+  if (text.length <= width) return text;
+  if (width <= 3) return text.slice(0, width);
+  return `${text.slice(0, width - 3).trimEnd()}...`;
 }
 
 export function getTaxLabel(receipt: SaleReceipt): string {
