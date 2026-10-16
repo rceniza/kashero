@@ -82,15 +82,16 @@ jobs:
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           cat > release-notes.md <<EOF
-          Kashero ${VERSION} is an Android prerelease with aligned, compact 58 mm receipt rows.
+          Kashero ${VERSION} is an Android prerelease with print-width-adjusted, aligned receipt rows.
 
           ## Android
 
           - Download the ARM64 APK and install it on Android 11 (API 30) or later.
           - This build keeps the existing app signing key so it can update the previous Kashero APK without uninstalling.
           - In Kashero, open **Store options → Printer Settings → Find Bluetooth printers**. Printers already paired with Android should appear immediately; nearby discovery can take longer. Select your printer and tap **Save printer**; a test receipt is optional.
-          - Reprints use ASCII `PHP` amounts and compact ESC/POS Font B, with up to 40 characters per line on 58 mm paper. Confirm alignment and readability with your printer before relying on it for customer receipts.
-          - Item quantity, name, and total now share a row (long labels wrap as needed), and printer line spacing is tighter.
+          - Reprints use ASCII `PHP` amounts and compact ESC/POS Font B, reserving nine columns for the printer's physical margins. The on-screen preview remains full width.
+          - Item quantity and name wrap within the print area; totals align at the right edge. Printer line spacing is tighter.
+          - Check divider fit, item alignment, and readability on your JK-5802H before relying on printed customer receipts.
           - Physical JK-5802H discovery, connection, and receipt printing still need verification on the target device.
 
           ## iOS
